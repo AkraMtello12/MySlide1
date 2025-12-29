@@ -1,0 +1,31 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #DAE3F3;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #8FA9D8;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #203863;
+}
+
+/* Base styles to ensure full height */
+body, #root {
+  min-height: 100vh;
+}
