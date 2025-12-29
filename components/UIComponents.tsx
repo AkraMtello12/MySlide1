@@ -1,5 +1,6 @@
 import React from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import { X } from 'lucide-react';
 
 export const SectionTitle: React.FC<{ children: React.ReactNode; subtitle?: string }> = ({ children, subtitle }) => (
   <div className="mb-16 text-center relative z-10">
@@ -32,14 +33,16 @@ export const Button: React.FC<{
   variant?: 'primary' | 'secondary' | 'outline' | 'danger';
   className?: string;
   type?: 'button' | 'submit' | 'reset';
+  disabled?: boolean;
 }> = ({ 
   children, 
   onClick, 
   variant = 'primary', 
   className = '',
-  type = 'button'
+  type = 'button',
+  disabled = false
 }) => {
-  const baseStyle = "px-6 py-3 rounded-xl font-bold transition-all duration-300 transform active:scale-95 flex items-center justify-center gap-2";
+  const baseStyle = "px-6 py-3 rounded-xl font-bold transition-all duration-300 transform active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed";
   const variants = {
     primary: "bg-primary text-white hover:bg-secondary hover:shadow-lg hover:shadow-secondary/30",
     secondary: "bg-secondary text-white hover:bg-primary hover:shadow-lg hover:shadow-primary/30",
@@ -51,6 +54,7 @@ export const Button: React.FC<{
     <button 
       type={type}
       onClick={onClick} 
+      disabled={disabled}
       className={`${baseStyle} ${variants[variant]} ${className}`}
     >
       {children}
@@ -82,4 +86,43 @@ export const TextArea: React.FC<React.TextareaHTMLAttributes<HTMLTextAreaElement
       {...props} 
     />
   </div>
+);
+
+export const Modal: React.FC<{
+  isOpen: boolean;
+  onClose: () => void;
+  title: string;
+  children: React.ReactNode;
+}> = ({ isOpen, onClose, title, children }) => (
+  <AnimatePresence>
+    {isOpen && (
+      <>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={onClose}
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
+        />
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: 20 }}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none"
+        >
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden pointer-events-auto flex flex-col max-h-[90vh]">
+            <div className="flex justify-between items-center p-6 border-b border-gray-100">
+              <h3 className="text-xl font-bold text-primary">{title}</h3>
+              <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+                <X size={20} className="text-gray-500" />
+              </button>
+            </div>
+            <div className="p-6 overflow-y-auto">
+              {children}
+            </div>
+          </div>
+        </motion.div>
+      </>
+    )}
+  </AnimatePresence>
 );

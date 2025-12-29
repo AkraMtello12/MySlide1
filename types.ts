@@ -8,6 +8,7 @@ export interface Quote {
 export interface Resource {
   id: string;
   title: string;
+  description?: string; // New optional field
   url: string;
   image: string;
 }

@@ -13,7 +13,7 @@ interface HomeProps {
 const Hero = ({ quotes }: { quotes: Quote[] }) => {
   const [currentQuoteIndex, setCurrentQuoteIndex] = useState(0);
 
-  // Rotate quotes every 6 seconds (simulating the 6-hour requirement for demo purposes)
+  // Rotate quotes every 6 seconds
   useEffect(() => {
     if (quotes.length === 0) return;
     const interval = setInterval(() => {
@@ -49,7 +49,6 @@ const Hero = ({ quotes }: { quotes: Quote[] }) => {
           <div className="inline-block px-4 py-2 bg-white/60 backdrop-blur-sm rounded-full text-primary font-bold text-sm mb-6 border border-white shadow-sm">
             نصمم نجاحك، شريحة تلو الأخرى
           </div>
-          {/* Increased Line Height here with leading-[1.3] */}
           <h1 className="text-5xl md:text-7xl font-black text-primary leading-[1.3] md:leading-[1.4] mb-6">
             <span className="block">الإبداع في كل</span>
             <span className="text-transparent bg-clip-text bg-gradient-to-l from-primary to-secondary">تفاصيل العرض</span>
@@ -86,7 +85,6 @@ const Hero = ({ quotes }: { quotes: Quote[] }) => {
                 </motion.div>
               )}
             </AnimatePresence>
-            {/* Progress Bar for Quote Timer */}
             <motion.div 
               key={`progress-${currentQuoteIndex}`}
               initial={{ width: "0%" }}
@@ -117,7 +115,7 @@ const Resources = ({ resources }: { resources: AppData['resources'] }) => (
             transition={{ delay: idx * 0.1 }}
           >
             <Card className="group h-full flex flex-col overflow-hidden">
-              <div className="h-48 overflow-hidden relative">
+              <div className="h-48 overflow-hidden relative border-b border-gray-100">
                 <div className="absolute inset-0 bg-primary/20 group-hover:bg-transparent transition-colors z-10 duration-500"></div>
                 <img 
                   src={resource.image} 
@@ -127,15 +125,20 @@ const Resources = ({ resources }: { resources: AppData['resources'] }) => (
               </div>
               <div className="p-6 flex flex-col flex-grow">
                 <h3 className="text-xl font-bold text-primary mb-2">{resource.title}</h3>
-                <div className="mt-auto pt-4">
+                {resource.description && (
+                  <p className="text-gray-500 text-sm mb-4 line-clamp-3 leading-relaxed">
+                    {resource.description}
+                  </p>
+                )}
+                <div className="mt-auto pt-2">
                   <a 
                     href={resource.url} 
                     target="_blank" 
                     rel="noreferrer"
-                    className="flex items-center gap-2 text-secondary font-bold group-hover:text-primary transition-colors"
+                    className="flex items-center gap-2 text-secondary font-bold group-hover:text-primary transition-colors text-sm"
                   >
                     <span>زيارة الموقع</span>
-                    <ExternalLink size={16} />
+                    <ExternalLink size={14} />
                   </a>
                 </div>
               </div>
@@ -150,7 +153,6 @@ const Resources = ({ resources }: { resources: AppData['resources'] }) => (
 // --- CTA Section ---
 const InternalCTA = () => (
   <section className="py-20 bg-primary relative overflow-hidden">
-    {/* Abstract pattern */}
     <div className="absolute top-0 right-0 w-full h-full opacity-10">
         <svg width="100%" height="100%">
             <pattern id="pattern-circles" x="0" y="0" width="40" height="40" patternUnits="userSpaceOnUse">
@@ -198,7 +200,6 @@ const Portfolio = ({ works }: { works: AppData['portfolio'] }) => (
             className="break-inside-avoid"
           >
             <div className="group relative rounded-2xl overflow-hidden shadow-lg cursor-pointer bg-white">
-              {/* Force Aspect Ratio 16:9 (aspect-video) for PowerPoint Slide Dimensions */}
               <div className="aspect-video w-full overflow-hidden">
                 <img 
                   src={work.imageUrl} 
@@ -206,7 +207,6 @@ const Portfolio = ({ works }: { works: AppData['portfolio'] }) => (
                   className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700"
                 />
               </div>
-              {/* Overlay */}
               <div className="absolute inset-0 bg-gradient-to-t from-primary/90 via-primary/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-6">
                 <h3 className="text-white text-xl font-bold transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300 delay-100">{work.title}</h3>
                 <div className="flex items-center gap-2 mt-2 transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300 delay-200">
