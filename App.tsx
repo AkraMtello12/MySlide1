@@ -87,8 +87,8 @@ const Footer = () => (
         </div>
         <div>
           <h4 className="text-lg font-bold text-secondary mb-4">تواصل معنا</h4>
-          <p className="text-gray-300 mb-2">info@myslide.agency</p>
-          <p className="text-gray-300">+966 50 000 0000</p>
+          <p className="text-gray-300 mb-2">sales@myslide.net</p>
+          <p className="text-gray-300">+966920035443</p>
         </div>
       </div>
       <div className="pt-8 text-center text-gray-400 text-sm">
