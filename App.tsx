@@ -10,7 +10,7 @@ import LoginPage from './pages/Login';
 import { Button } from './components/UIComponents';
 
 // Placeholder Logo URL
-const LOGO_URL = "https://yappy-coral-abyr1vrhhc.edgeone.app/MySlide%20Logo%20-%202-06.png";
+const LOGO_URL = "https://intensive-brown-qrdobue2wd.edgeone.app/MySlide_Logo_-_2-06-removebg-preview.png";
 
 const Navbar = () => {
   const location = useLocation();
