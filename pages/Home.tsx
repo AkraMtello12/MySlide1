@@ -62,14 +62,15 @@ const Hero = ({ quotes }: { quotes: Quote[] }) => {
           className="mb-8"
         >
           <div className="inline-block px-4 py-2 bg-white/60 backdrop-blur-sm rounded-full text-primary font-bold text-sm mb-6 border border-white shadow-sm">
-            نصمم نجاحك، شريحة تلو الأخرى
+            أهلاً بك في ركنك المفضل ☕
           </div>
           <h1 className="text-5xl md:text-7xl font-black text-primary leading-[1.3] md:leading-[1.4] mb-6">
-            <span className="block">الإبداع في كل</span>
-            <span className="text-transparent bg-clip-text bg-gradient-to-l from-primary to-secondary">تفاصيل العرض</span>
+            <span className="block">كل ما يحتاجه المصمم...</span>
+            <span className="text-transparent bg-clip-text bg-gradient-to-l from-primary to-secondary">بمكان واحد</span>
           </h1>
           <p className="text-xl text-gray-600 max-w-2xl mx-auto mb-10 leading-relaxed">
-            في <span className="font-bold text-primary">MySlide</span>، نجمع بين التفكير الاستراتيجي والتصميم الهندسي الدقيق لنقدم عروضاً تقديمية تترك أثراً لا يمحى.
+            <span className="font-bold text-primary">مساحتك الخاصة للوصول إلى الأدوات الأكثر استخدامًا
+</span>
           </p>
         </MotionDiv>
 
