@@ -10,7 +10,7 @@ import LoginPage from './pages/Login';
 import { Button } from './components/UIComponents';
 
 // Placeholder Logo URL
-const LOGO_URL = "https://cdn-icons-png.flaticon.com/512/2881/2881031.png";
+const LOGO_URL = "https://drive.google.com/file/d/13oRBNAsLnLzwUasK43KLhcs2u82EiM8T/view?usp=sharing";
 
 const Navbar = () => {
   const location = useLocation();
