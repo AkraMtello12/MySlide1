@@ -1,12 +1,11 @@
 import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Menu, X, RefreshCw, AlertTriangle } from 'lucide-react';
+import { LayoutDashboard, Menu, X, AlertTriangle } from 'lucide-react';
 import { getAppData } from './services/storage';
 import { isFirebaseConfigured } from './firebase';
 import { AppData } from './types';
 import HomePage from './pages/Home';
 import AdminPage from './pages/Admin';
-import GuidelinesPage from './pages/Guidelines';
 import LoginPage from './pages/Login';
 import { Button } from './components/UIComponents';
 
@@ -41,9 +40,6 @@ const Navbar = () => {
             <Link to="/" className={`text-sm font-bold hover:text-secondary transition-colors ${location.pathname === '/' ? 'text-primary' : 'text-gray-500'}`}>
               الرئيسية
             </Link>
-            <Link to="/guidelines" className={`text-sm font-bold hover:text-secondary transition-colors ${location.pathname === '/guidelines' ? 'text-primary' : 'text-gray-500'}`}>
-              اللائحة الداخلية
-            </Link>
             <Link to="/admin" className="px-5 py-2 bg-primary text-white rounded-full text-sm font-bold hover:bg-secondary transition-all hover:shadow-lg hover:shadow-secondary/40 flex items-center gap-2">
               <LayoutDashboard size={16} />
               <span>لوحة التحكم</span>
@@ -59,7 +55,6 @@ const Navbar = () => {
       {isOpen && (
         <div className="md:hidden bg-white border-b border-secondary/20 absolute w-full left-0 top-20 shadow-xl py-4 flex flex-col space-y-4 px-6 animate-fade-in-down">
           <Link to="/" className="text-lg font-bold text-primary py-2 border-b border-gray-100">الرئيسية</Link>
-          <Link to="/guidelines" className="text-lg font-bold text-primary py-2 border-b border-gray-100">اللائحة الداخلية</Link>
           <Link to="/admin" className="text-lg font-bold text-secondary py-2">لوحة التحكم</Link>
         </div>
       )}
@@ -87,7 +82,6 @@ const Footer = () => (
           <h4 className="text-lg font-bold text-secondary mb-4">روابط سريعة</h4>
           <ul className="space-y-2">
             <li><Link to="/" className="text-gray-300 hover:text-white transition-colors">الرئيسية</Link></li>
-            <li><Link to="/guidelines" className="text-gray-300 hover:text-white transition-colors">اللائحة الداخلية</Link></li>
             <li><Link to="/admin" className="text-gray-300 hover:text-white transition-colors">دخول الموظفين</Link></li>
           </ul>
         </div>
@@ -119,7 +113,7 @@ export default function App() {
       setError(null);
     } catch (err) {
       console.error(err);
-      setError("فشل في تحميل البيانات من الخادم. يرجى التحقق من إعدادات مشروع Firebase في Console ومن قواعد الأمان (Firestore Rules).");
+      setError("فشل في تحميل البيانات.");
     } finally {
       setLoading(false);
     }
@@ -151,38 +145,28 @@ export default function App() {
         <div className="max-w-2xl bg-white p-8 rounded-2xl shadow-xl border-t-4 border-yellow-500">
            <AlertTriangle className="w-16 h-16 text-yellow-500 mx-auto mb-6" />
            <h1 className="text-2xl font-black text-primary mb-4">مطلوب إعداد Firebase</h1>
-           <p className="text-gray-600 mb-6 leading-relaxed">
-             الموقع جاهز للعمل، ولكن يجب عليك أولاً ربطه بقاعدة البيانات الخاصة بك.
-           </p>
-           <div className="bg-gray-100 p-4 rounded-lg text-left text-sm font-mono mb-6 overflow-x-auto" dir="ltr">
-             <p className="mb-2 text-gray-500">// Open file: <span className="text-primary font-bold">firebase.ts</span></p>
-             <p className="text-green-600">const firebaseConfig = &#123;</p>
-             <p className="ml-4 text-gray-400">apiKey: "PASTE_YOUR_API_KEY_HERE",</p>
-             <p className="ml-4 text-gray-400">...</p>
-             <p className="text-green-600">&#125;;</p>
-           </div>
-           <p className="text-sm text-gray-500 mb-6">
-             بعد تحديث الملف، سيقوم الموقع بالتحميل تلقائياً. تأكد أيضاً من تفعيل <b>Firestore Database</b> و <b>Storage</b> في مشروعك.
-           </p>
+           <p className="text-gray-600 mb-6 leading-relaxed">يرجى ربط قاعدة البيانات للبدء.</p>
            <Button onClick={() => window.location.reload()}>تحديث الصفحة</Button>
         </div>
       </div>
     );
   }
 
+  // Minimalist loading screen - No text as requested
   if (loading) return (
-    <div className="h-screen flex flex-col items-center justify-center bg-background text-primary gap-4">
-      <RefreshCw className="animate-spin w-10 h-10 text-secondary" />
-      <p className="font-bold text-lg">جاري الاتصال بقاعدة البيانات...</p>
+    <div className="h-screen flex items-center justify-center bg-background">
+      <div className="animate-pulse">
+        <img src={LOGO_URL} alt="Loading..." className="w-16 h-16 opacity-50 grayscale" />
+      </div>
     </div>
   );
 
   if (error) return (
     <div className="h-screen flex flex-col items-center justify-center text-center p-4">
       <div className="bg-red-50 text-red-600 p-6 rounded-xl border border-red-100 max-w-lg">
-        <h3 className="font-bold text-lg mb-2">حدث خطأ في الاتصال</h3>
+        <h3 className="font-bold text-lg mb-2">عذراً</h3>
         <p>{error}</p>
-        <Button className="mt-4 bg-red-600 hover:bg-red-700" onClick={() => window.location.reload()}>إعادة المحاولة</Button>
+        <Button className="mt-4 bg-red-600 hover:bg-red-700" onClick={() => window.location.reload()}>تحديث</Button>
       </div>
     </div>
   );
@@ -198,7 +182,6 @@ export default function App() {
               path="/admin" 
               element={isAdminLoggedIn ? <AdminPage onUpdate={fetchData} initialData={data!} /> : <LoginPage onLogin={handleLogin} />} 
             />
-            <Route path="/guidelines" element={<GuidelinesPage content={data?.guidelines.content || ''} />} />
           </Routes>
         </main>
         <Footer />

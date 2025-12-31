@@ -1,15 +1,13 @@
 import { useState } from 'react';
 import { 
   addQuoteToDB, deleteQuoteFromDB, updateQuoteInDB,
-  addResourceToDB, deleteResourceFromDB, updateResourceInDB,
-  addWorkToDB, deleteWorkFromDB, updateWorkInDB,
-  saveGuidelinesToDB
+  addResourceToDB, deleteResourceFromDB, updateResourceInDB
 } from '../services/storage';
-import { AppData, Quote, Resource, SlideWork } from '../types';
+import { AppData, Quote, Resource } from '../types';
 import { Button, Input, TextArea, Card, Modal } from '../components/UIComponents';
-import { Plus, Trash2, Save, Image, Type, Link as LinkIcon, Edit, Loader2, LogOut } from 'lucide-react';
+import { Plus, Trash2, Link as LinkIcon, Type, Loader2, LogOut } from 'lucide-react';
 
-type Tab = 'quotes' | 'resources' | 'guidelines' | 'portfolio';
+type Tab = 'quotes' | 'resources';
 
 interface AdminPageProps {
   initialData: AppData;
@@ -19,16 +17,14 @@ interface AdminPageProps {
 export default function AdminPage({ initialData, onUpdate }: AdminPageProps) {
   const [activeTab, setActiveTab] = useState<Tab>('quotes');
   const [loadingAction, setLoadingAction] = useState(false);
-  const [guidelinesContent, setGuidelinesContent] = useState(initialData.guidelines.content);
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [modalType, setModalType] = useState<'quote' | 'resource' | 'work' | null>(null);
+  const [modalType, setModalType] = useState<'quote' | 'resource' | null>(null);
 
   // Form States (Temporary storage for new items)
   const [newQuote, setNewQuote] = useState({ text: '', author: '' });
   const [newResource, setNewResource] = useState({ title: '', url: '', image: '', description: '' });
-  const [newWork, setNewWork] = useState({ title: '', designerName: '', imageUrl: '' });
 
   // --- Handlers ---
   
@@ -39,12 +35,11 @@ export default function AdminPage({ initialData, onUpdate }: AdminPageProps) {
     }
   };
 
-  const openModal = (type: 'quote' | 'resource' | 'work') => {
+  const openModal = (type: 'quote' | 'resource') => {
     setModalType(type);
     // Reset forms
     setNewQuote({ text: '', author: '' });
     setNewResource({ title: '', url: '', image: '', description: '' });
-    setNewWork({ title: '', designerName: '', imageUrl: '' });
     setIsModalOpen(true);
   };
 
@@ -92,37 +87,6 @@ export default function AdminPage({ initialData, onUpdate }: AdminPageProps) {
     setLoadingAction(false);
   };
 
-  // --- Portfolio Logic ---
-  const saveNewWork = async () => {
-    if (!newWork.title) return alert("الرجاء إدخال عنوان المشروع");
-    setLoadingAction(true);
-    await addWorkToDB({ ...newWork });
-    await onUpdate();
-    setIsModalOpen(false);
-    setLoadingAction(false);
-  };
-
-  const handleUpdateWork = async (id: string, field: keyof SlideWork, value: string) => {
-    await updateWorkInDB(id, { [field]: value });
-  };
-
-  const handleDeleteWork = async (id: string) => {
-    if (!confirm('هل أنت متأكد من الحذف؟')) return;
-    setLoadingAction(true);
-    await deleteWorkFromDB(id);
-    await onUpdate();
-    setLoadingAction(false);
-  };
-
-  // --- Guidelines Save ---
-  const handleSaveGuidelines = async () => {
-    setLoadingAction(true);
-    await saveGuidelinesToDB(guidelinesContent);
-    await onUpdate();
-    setLoadingAction(false);
-    alert("تم حفظ اللائحة بنجاح");
-  };
-
   return (
     <div className="min-h-screen bg-gray-50 py-12">
       <div className="container mx-auto px-4">
@@ -142,8 +106,6 @@ export default function AdminPage({ initialData, onUpdate }: AdminPageProps) {
             {[
               { id: 'quotes', label: 'إدارة الاقتباسات', icon: Type },
               { id: 'resources', label: 'المواقع الهامة', icon: LinkIcon },
-              { id: 'guidelines', label: 'اللائحة الداخلية', icon: Edit },
-              { id: 'portfolio', label: 'معرض الأعمال', icon: Image },
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -239,63 +201,6 @@ export default function AdminPage({ initialData, onUpdate }: AdminPageProps) {
               </div>
             )}
 
-            {/* Guidelines Tab */}
-            {activeTab === 'guidelines' && (
-              <div className="space-y-6">
-                <div className="flex justify-between items-center">
-                   <h2 className="text-2xl font-bold text-primary">تحرير اللائحة</h2>
-                   <Button onClick={handleSaveGuidelines}><Save size={16} /> حفظ التعديلات</Button>
-                </div>
-                <TextArea 
-                  label="المحتوى النصي (Markdown)" 
-                  value={guidelinesContent}
-                  onChange={(e) => setGuidelinesContent(e.target.value)}
-                  className="min-h-[400px] font-mono text-base"
-                />
-              </div>
-            )}
-
-            {/* Portfolio Tab */}
-            {activeTab === 'portfolio' && (
-              <div className="space-y-6">
-                 <div className="flex justify-between items-center">
-                   <h2 className="text-2xl font-bold text-primary">معرض الأعمال</h2>
-                   <Button onClick={() => openModal('work')} className="text-sm py-2"><Plus size={16} /> إضافة عمل</Button>
-                </div>
-                <div className="grid md:grid-cols-2 gap-4">
-                  {initialData.portfolio.map((work) => (
-                    <Card key={work.id} className="p-4 flex flex-col gap-3 relative">
-                      <button onClick={() => handleDeleteWork(work.id)} className="absolute top-4 left-4 text-red-400 hover:text-red-600 bg-white p-1 rounded-full shadow z-20"><Trash2 size={18}/></button>
-                      
-                      <div className="w-full h-40 bg-gray-100 rounded-lg overflow-hidden mb-2 relative group border border-gray-200">
-                         {work.imageUrl ? (
-                           <img src={work.imageUrl} alt="preview" className="w-full h-full object-cover" />
-                         ) : (
-                           <div className="w-full h-full flex items-center justify-center text-gray-400 text-sm">لا توجد صورة</div>
-                         )}
-                      </div>
-
-                      <Input 
-                        label="رابط الصورة (URL)" 
-                        defaultValue={work.imageUrl}
-                        onBlur={(e) => handleUpdateWork(work.id, 'imageUrl', e.target.value)}
-                      />
-                      <Input 
-                        label="عنوان المشروع" 
-                        defaultValue={work.title} 
-                        onBlur={(e) => handleUpdateWork(work.id, 'title', e.target.value)}
-                      />
-                      <Input 
-                        label="اسم المصمم" 
-                        defaultValue={work.designerName} 
-                        onBlur={(e) => handleUpdateWork(work.id, 'designerName', e.target.value)}
-                      />
-                    </Card>
-                  ))}
-                </div>
-              </div>
-            )}
-
           </div>
         </div>
       </div>
@@ -352,31 +257,6 @@ export default function AdminPage({ initialData, onUpdate }: AdminPageProps) {
             />
             <div className="flex justify-end pt-4">
               <Button onClick={saveNewResource} disabled={loadingAction}>{loadingAction ? 'جاري الحفظ...' : 'حفظ'}</Button>
-            </div>
-         </div>
-      </Modal>
-
-      {/* Create Work Modal */}
-      <Modal isOpen={isModalOpen && modalType === 'work'} onClose={() => setIsModalOpen(false)} title="إضافة عمل جديد">
-         <div className="space-y-4">
-            <Input 
-              label="عنوان المشروع" 
-              value={newWork.title} 
-              onChange={(e) => setNewWork({...newWork, title: e.target.value})}
-            />
-            <Input 
-              label="اسم المصمم" 
-              value={newWork.designerName} 
-              onChange={(e) => setNewWork({...newWork, designerName: e.target.value})}
-            />
-             <Input 
-              label="رابط صورة السلايد (URL)" 
-              value={newWork.imageUrl} 
-              onChange={(e) => setNewWork({...newWork, imageUrl: e.target.value})}
-              placeholder="https://..."
-            />
-            <div className="flex justify-end pt-4">
-              <Button onClick={saveNewWork} disabled={loadingAction}>{loadingAction ? 'جاري الحفظ...' : 'حفظ'}</Button>
             </div>
          </div>
       </Modal>

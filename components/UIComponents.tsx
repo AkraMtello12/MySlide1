@@ -2,19 +2,24 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
 
+// Cast motion components to any to avoid type errors in this environment
+const MotionSpan = motion.span as any;
+const MotionH2 = motion.h2 as any;
+const MotionDiv = motion.div as any;
+
 export const SectionTitle: React.FC<{ children: React.ReactNode; subtitle?: string }> = ({ children, subtitle }) => (
   <div className="mb-16 text-center relative z-10">
     {subtitle && (
-      <motion.span 
+      <MotionSpan 
         initial={{ opacity: 0, y: 10 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
         className="block text-secondary font-bold tracking-wider text-xl md:text-2xl mb-3"
       >
         {subtitle}
-      </motion.span>
+      </MotionSpan>
     )}
-    <motion.h2 
+    <MotionH2 
       initial={{ opacity: 0, y: 20 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
@@ -23,7 +28,7 @@ export const SectionTitle: React.FC<{ children: React.ReactNode; subtitle?: stri
     >
       {children}
       <span className="absolute -bottom-4 left-1/2 transform -translate-x-1/2 w-24 h-2 bg-secondary rounded-full opacity-80"></span>
-    </motion.h2>
+    </MotionH2>
   </div>
 );
 
@@ -97,14 +102,14 @@ export const Modal: React.FC<{
   <AnimatePresence>
     {isOpen && (
       <>
-        <motion.div
+        <MotionDiv
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={onClose}
           className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
         />
-        <motion.div
+        <MotionDiv
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -121,7 +126,7 @@ export const Modal: React.FC<{
               {children}
             </div>
           </div>
-        </motion.div>
+        </MotionDiv>
       </>
     )}
   </AnimatePresence>
