@@ -4,9 +4,9 @@ import {
   addResourceToDB, deleteResourceFromDB, updateResourceInDB,
   addCategoryToDB, deleteCategoryFromDB
 } from '../services/storage';
-import { AppData, Quote, Resource, Category } from '../types';
+import { AppData } from '../types';
 import { Button, Input, TextArea, Card, Modal, Select } from '../components/UIComponents';
-import { Plus, Trash2, Link as LinkIcon, Type, Loader2, LogOut, Folder, Edit, ExternalLink, Lock, Unlock } from 'lucide-react';
+import { Plus, Trash2, Link as LinkIcon, Type, Loader2, LogOut, Folder, Edit, ExternalLink, Lock } from 'lucide-react';
 
 type Tab = 'quotes' | 'resources' | 'categories';
 
