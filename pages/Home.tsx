@@ -10,7 +10,6 @@ interface HomeProps {
 
 // Cast motion components to any to avoid type errors
 const MotionDiv = motion.div as any;
-const MotionButton = motion.button as any;
 
 // --- Hero Section Component ---
 const Hero = ({ quotes }: { quotes: Quote[] }) => {

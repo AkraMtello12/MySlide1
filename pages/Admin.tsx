@@ -4,7 +4,7 @@ import {
   addResourceToDB, deleteResourceFromDB, updateResourceInDB,
   addCategoryToDB, deleteCategoryFromDB
 } from '../services/storage';
-import { AppData, Quote, Resource, Category } from '../types';
+import { AppData } from '../types';
 import { Button, Input, TextArea, Card, Modal, Select } from '../components/UIComponents';
 import { Plus, Trash2, Link as LinkIcon, Type, Loader2, LogOut, Folder, Edit, ExternalLink } from 'lucide-react';
 
