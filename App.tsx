@@ -10,7 +10,7 @@ import LoginPage from './pages/Login';
 import { Button } from './components/UIComponents';
 
 // Placeholder Logo URL
-const LOGO_URL = "https://intensive-brown-qrdobue2wd.edgeone.app/MySlide_Logo_-_2-06-removebg-preview.png";
+const LOGO_URL = "https://cdn-icons-png.flaticon.com/512/2881/2881031.png";
 
 const Navbar = () => {
   const location = useLocation();
@@ -63,37 +63,11 @@ const Navbar = () => {
 };
 
 const Footer = () => (
-  <footer className="bg-primary text-white pt-16 pb-8 mt-20 relative overflow-hidden">
-    <div className="absolute top-0 right-0 w-64 h-64 bg-secondary opacity-10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
-    <div className="absolute bottom-0 left-0 w-48 h-48 bg-secondary opacity-10 rounded-full blur-2xl translate-y-1/2 -translate-x-1/2"></div>
-
-    <div className="container mx-auto px-4 relative z-10">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-10 border-b border-white/10 pb-10">
-        <div>
-          <h3 className="text-2xl font-bold mb-4 flex items-center gap-2">
-             <img src={LOGO_URL} alt="MySlide Logo" className="w-8 h-8 object-contain bg-white/10 rounded-md p-1" />
-             MySlide
-          </h3>
-          <p className="text-gray-300 leading-relaxed max-w-xs">
-            نحول الأفكار المعقدة إلى قصص بصرية ملهمة. وكالة متخصصة في تصميم العروض التقديمية الاحترافية.
-          </p>
-        </div>
-        <div>
-          <h4 className="text-lg font-bold text-secondary mb-4">روابط سريعة</h4>
-          <ul className="space-y-2">
-            <li><Link to="/" className="text-gray-300 hover:text-white transition-colors">الرئيسية</Link></li>
-            <li><Link to="/admin" className="text-gray-300 hover:text-white transition-colors">دخول الموظفين</Link></li>
-          </ul>
-        </div>
-        <div>
-          <h4 className="text-lg font-bold text-secondary mb-4">تواصل معنا</h4>
-          <p className="text-gray-300 mb-2">sales@myslide.net</p>
-          <p className="text-gray-300">+966920035443</p>
-        </div>
-      </div>
-      <div className="pt-8 text-center text-gray-400 text-sm">
-        &copy; {new Date().getFullYear()} MySlide Agency. جميع الحقوق محفوظة.
-      </div>
+  <footer className="bg-primary text-white py-8 mt-auto border-t border-white/10">
+    <div className="container mx-auto px-4 text-center">
+      <p className="text-gray-300 text-sm font-medium">
+        &copy; 2026 MySlide Agency. جميع الحقوق محفوظة.
+      </p>
     </div>
   </footer>
 );
