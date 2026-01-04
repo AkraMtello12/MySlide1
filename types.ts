@@ -8,6 +8,7 @@ export interface Quote {
 export interface Category {
   id: string;
   name: string;
+  password?: string; // Optional password for the category
 }
 
 export interface Resource {
