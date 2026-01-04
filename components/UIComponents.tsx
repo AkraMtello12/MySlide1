@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X } from 'lucide-react';
+import { X, ChevronDown } from 'lucide-react';
 
 // Cast motion components to any to avoid type errors in this environment
 const MotionSpan = motion.span as any;
@@ -90,6 +90,26 @@ export const TextArea: React.FC<React.TextareaHTMLAttributes<HTMLTextAreaElement
       className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:border-secondary focus:ring-2 focus:ring-secondary/20 outline-none transition-all bg-gray-50/50 min-h-[120px]"
       {...props} 
     />
+  </div>
+);
+
+export const Select: React.FC<React.SelectHTMLAttributes<HTMLSelectElement> & { label: string; options: { value: string; label: string }[] }> = ({ label, options, ...props }) => (
+  <div className="mb-4">
+    <label className="block text-sm font-bold text-primary mb-2">{label}</label>
+    <div className="relative">
+      <select 
+        className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:border-secondary focus:ring-2 focus:ring-secondary/20 outline-none transition-all bg-gray-50/50 appearance-none"
+        {...props} 
+      >
+        <option value="" disabled>اختر...</option>
+        {options.map(opt => (
+          <option key={opt.value} value={opt.value}>{opt.label}</option>
+        ))}
+      </select>
+      <div className="absolute left-3 top-1/2 transform -translate-y-1/2 pointer-events-none text-gray-500">
+        <ChevronDown size={18} />
+      </div>
+    </div>
   </div>
 );
 

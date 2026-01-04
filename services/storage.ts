@@ -7,20 +7,22 @@ import {
   deleteDoc, 
   doc
 } from 'firebase/firestore';
-import { AppData, Quote, Resource } from '../types';
+import { AppData, Quote, Resource, Category } from '../types';
 
 // --- Fetch Data ---
 export const getAppData = async (): Promise<AppData> => {
   try {
-    const [quotesSnap, resourcesSnap] = await Promise.all([
+    const [quotesSnap, resourcesSnap, categoriesSnap] = await Promise.all([
       getDocs(collection(db, 'quotes')),
-      getDocs(collection(db, 'resources'))
+      getDocs(collection(db, 'resources')),
+      getDocs(collection(db, 'categories'))
     ]);
 
     const quotes = quotesSnap.docs.map(d => ({ id: d.id, ...d.data() } as Quote));
     const resources = resourcesSnap.docs.map(d => ({ id: d.id, ...d.data() } as Resource));
+    const categories = categoriesSnap.docs.map(d => ({ id: d.id, ...d.data() } as Category));
     
-    return { quotes, resources };
+    return { quotes, resources, categories };
   } catch (error) {
     console.error("Error fetching data:", error);
     throw error;
@@ -52,4 +54,13 @@ export const updateResourceInDB = async (id: string, data: Partial<Resource>) =>
 
 export const deleteResourceFromDB = async (id: string) => {
   return deleteDoc(doc(db, 'resources', id));
+};
+
+// --- Categories Operations ---
+export const addCategoryToDB = async (category: Omit<Category, 'id'>) => {
+  return addDoc(collection(db, 'categories'), category);
+};
+
+export const deleteCategoryFromDB = async (id: string) => {
+  return deleteDoc(doc(db, 'categories', id));
 };

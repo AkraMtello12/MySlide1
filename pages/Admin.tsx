@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import { 
   addQuoteToDB, deleteQuoteFromDB, updateQuoteInDB,
-  addResourceToDB, deleteResourceFromDB, updateResourceInDB
+  addResourceToDB, deleteResourceFromDB, updateResourceInDB,
+  addCategoryToDB, deleteCategoryFromDB
 } from '../services/storage';
-import { AppData, Quote, Resource } from '../types';
-import { Button, Input, TextArea, Card, Modal } from '../components/UIComponents';
-import { Plus, Trash2, Link as LinkIcon, Type, Loader2, LogOut } from 'lucide-react';
+import { AppData, Quote, Resource, Category } from '../types';
+import { Button, Input, TextArea, Card, Modal, Select } from '../components/UIComponents';
+import { Plus, Trash2, Link as LinkIcon, Type, Loader2, LogOut, Folder, Edit, ExternalLink } from 'lucide-react';
 
-type Tab = 'quotes' | 'resources';
+type Tab = 'quotes' | 'resources' | 'categories';
 
 interface AdminPageProps {
   initialData: AppData;
@@ -20,11 +21,13 @@ export default function AdminPage({ initialData, onUpdate }: AdminPageProps) {
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [modalType, setModalType] = useState<'quote' | 'resource' | null>(null);
+  const [modalType, setModalType] = useState<'quote' | 'resource' | 'category' | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null); // Track if editing
 
-  // Form States (Temporary storage for new items)
+  // Form States
   const [newQuote, setNewQuote] = useState({ text: '', author: '' });
-  const [newResource, setNewResource] = useState({ title: '', url: '', image: '', description: '' });
+  const [newResource, setNewResource] = useState({ title: '', url: '', image: '', description: '', categoryId: '' });
+  const [newCategory, setNewCategory] = useState({ name: '' });
 
   // --- Handlers ---
   
@@ -35,26 +38,53 @@ export default function AdminPage({ initialData, onUpdate }: AdminPageProps) {
     }
   };
 
-  const openModal = (type: 'quote' | 'resource') => {
+  const openModal = (type: 'quote' | 'resource' | 'category', editItem?: any) => {
     setModalType(type);
-    // Reset forms
-    setNewQuote({ text: '', author: '' });
-    setNewResource({ title: '', url: '', image: '', description: '' });
+    setEditingId(editItem ? editItem.id : null);
+
+    if (type === 'quote') {
+      if (editItem) {
+         setNewQuote({ text: editItem.text, author: editItem.author });
+      } else {
+         setNewQuote({ text: '', author: '' });
+      }
+    } else if (type === 'resource') {
+      if (editItem) {
+        setNewResource({ 
+          title: editItem.title, 
+          url: editItem.url, 
+          image: editItem.image, 
+          description: editItem.description || '', 
+          categoryId: editItem.categoryId || '' 
+        });
+      } else {
+        setNewResource({ 
+          title: '', 
+          url: '', 
+          image: '', 
+          description: '', 
+          categoryId: initialData.categories.length > 0 ? initialData.categories[0].id : '' 
+        });
+      }
+    } else if (type === 'category') {
+       setNewCategory({ name: '' });
+    }
+    
     setIsModalOpen(true);
   };
 
   // --- Quote Logic ---
-  const saveNewQuote = async () => {
+  const saveQuote = async () => {
     if (!newQuote.text) return alert("الرجاء إدخال النص");
     setLoadingAction(true);
-    await addQuoteToDB({ ...newQuote, active: true });
+    if (editingId) {
+      await updateQuoteInDB(editingId, newQuote);
+    } else {
+      await addQuoteToDB({ ...newQuote, active: true });
+    }
     await onUpdate();
     setIsModalOpen(false);
     setLoadingAction(false);
-  };
-
-  const handleUpdateQuote = async (id: string, field: keyof Quote, value: string) => {
-    await updateQuoteInDB(id, { [field]: value });
   };
 
   const handleDeleteQuote = async (id: string) => {
@@ -66,17 +96,17 @@ export default function AdminPage({ initialData, onUpdate }: AdminPageProps) {
   };
 
   // --- Resource Logic ---
-  const saveNewResource = async () => {
-    if (!newResource.title || !newResource.url) return alert("الرجاء إدخال الاسم والرابط");
+  const saveResource = async () => {
+    if (!newResource.title || !newResource.url || !newResource.categoryId) return alert("الرجاء إدخال الاسم، الرابط، والتصنيف");
     setLoadingAction(true);
-    await addResourceToDB({ ...newResource });
+    if (editingId) {
+       await updateResourceInDB(editingId, newResource);
+    } else {
+       await addResourceToDB({ ...newResource });
+    }
     await onUpdate();
     setIsModalOpen(false);
     setLoadingAction(false);
-  };
-
-  const handleUpdateResource = async (id: string, field: keyof Resource, value: string) => {
-    await updateResourceInDB(id, { [field]: value });
   };
 
   const handleDeleteResource = async (id: string) => {
@@ -86,6 +116,25 @@ export default function AdminPage({ initialData, onUpdate }: AdminPageProps) {
     await onUpdate();
     setLoadingAction(false);
   };
+
+  // --- Category Logic ---
+  const saveCategory = async () => {
+    if (!newCategory.name) return alert("الرجاء إدخال اسم التصنيف");
+    setLoadingAction(true);
+    await addCategoryToDB({ ...newCategory });
+    await onUpdate();
+    setIsModalOpen(false);
+    setLoadingAction(false);
+  };
+
+  const handleDeleteCategory = async (id: string) => {
+    if (!confirm('هل أنت متأكد من الحذف؟ سيتم إخفاء المواقع المرتبطة بهذا التصنيف.')) return;
+    setLoadingAction(true);
+    await deleteCategoryFromDB(id);
+    await onUpdate();
+    setLoadingAction(false);
+  };
+
 
   return (
     <div className="min-h-screen bg-gray-50 py-12">
@@ -105,6 +154,7 @@ export default function AdminPage({ initialData, onUpdate }: AdminPageProps) {
           <div className="w-full md:w-64 bg-primary text-white p-6 flex flex-col gap-2">
             {[
               { id: 'quotes', label: 'إدارة الاقتباسات', icon: Type },
+              { id: 'categories', label: 'التصنيفات', icon: Folder },
               { id: 'resources', label: 'المواقع الهامة', icon: LinkIcon },
             ].map((tab) => (
               <button
@@ -136,18 +186,34 @@ export default function AdminPage({ initialData, onUpdate }: AdminPageProps) {
                 </div>
                 <div className="grid gap-4">
                   {initialData.quotes.map((quote) => (
-                    <Card key={quote.id} className="p-4 flex flex-col gap-3 relative border-l-4 border-secondary">
-                      <button onClick={() => handleDeleteQuote(quote.id)} className="absolute top-4 left-4 text-red-400 hover:text-red-600"><Trash2 size={18}/></button>
-                      <Input 
-                        label="نص الاقتباس" 
-                        defaultValue={quote.text} 
-                        onBlur={(e) => handleUpdateQuote(quote.id, 'text', e.target.value)}
-                      />
-                      <Input 
-                        label="القائل" 
-                        defaultValue={quote.author} 
-                        onBlur={(e) => handleUpdateQuote(quote.id, 'author', e.target.value)}
-                      />
+                    <Card key={quote.id} className="p-4 flex flex-col gap-3 relative border-l-4 border-secondary group">
+                      <div className="absolute top-4 left-4 flex gap-2">
+                        <button onClick={() => openModal('quote', quote)} className="text-blue-400 hover:text-blue-600"><Edit size={18}/></button>
+                        <button onClick={() => handleDeleteQuote(quote.id)} className="text-red-400 hover:text-red-600"><Trash2 size={18}/></button>
+                      </div>
+                      <p className="font-bold text-lg">{quote.text}</p>
+                      <p className="text-gray-500 text-sm">{quote.author}</p>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Categories Tab */}
+            {activeTab === 'categories' && (
+              <div className="space-y-6">
+                <div className="flex justify-between items-center">
+                   <h2 className="text-2xl font-bold text-primary">التصنيفات (المجلدات)</h2>
+                   <Button onClick={() => openModal('category')} className="text-sm py-2"><Plus size={16} /> إضافة تصنيف</Button>
+                </div>
+                <div className="grid md:grid-cols-3 gap-4">
+                  {initialData.categories.map((cat) => (
+                    <Card key={cat.id} className="p-6 flex items-center justify-between border-b-4 border-secondary">
+                       <div className="flex items-center gap-3">
+                          <Folder className="text-secondary" />
+                          <span className="font-bold text-lg text-primary">{cat.name}</span>
+                       </div>
+                       <button onClick={() => handleDeleteCategory(cat.id)} className="text-red-400 hover:text-red-600"><Trash2 size={18}/></button>
                     </Card>
                   ))}
                 </div>
@@ -162,41 +228,35 @@ export default function AdminPage({ initialData, onUpdate }: AdminPageProps) {
                    <Button onClick={() => openModal('resource')} className="text-sm py-2"><Plus size={16} /> إضافة موقع</Button>
                 </div>
                 <div className="grid md:grid-cols-2 gap-4">
-                  {initialData.resources.map((res) => (
-                    <Card key={res.id} className="p-4 flex flex-col gap-3 relative">
-                      <button onClick={() => handleDeleteResource(res.id)} className="absolute top-4 left-4 text-red-400 hover:text-red-600 bg-white p-1 rounded-full shadow z-20"><Trash2 size={18}/></button>
-                      
-                      <div className="w-full h-32 bg-gray-100 rounded-lg overflow-hidden mb-2 relative group border border-gray-200">
-                        {res.image ? (
-                          <img src={res.image} alt="preview" className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-gray-400 text-sm">لا توجد صورة</div>
-                        )}
-                      </div>
-
-                      <Input 
-                        label="رابط الصورة (URL)" 
-                        defaultValue={res.image} 
-                        onBlur={(e) => handleUpdateResource(res.id, 'image', e.target.value)}
-                      />
-                      <Input 
-                        label="اسم الموقع" 
-                        defaultValue={res.title} 
-                        onBlur={(e) => handleUpdateResource(res.id, 'title', e.target.value)}
-                      />
-                      <TextArea 
-                        label="وصف الموقع" 
-                        defaultValue={res.description || ''}
-                        onBlur={(e) => handleUpdateResource(res.id, 'description', e.target.value)}
-                        className="min-h-[80px]"
-                      />
-                      <Input 
-                        label="رابط الموقع" 
-                        defaultValue={res.url} 
-                        onBlur={(e) => handleUpdateResource(res.id, 'url', e.target.value)}
-                      />
-                    </Card>
-                  ))}
+                  {initialData.resources.map((res) => {
+                    const catName = initialData.categories.find(c => c.id === res.categoryId)?.name || 'غير مصنف';
+                    return (
+                      <Card key={res.id} className="p-4 flex flex-col gap-3 relative group">
+                        <div className="absolute top-4 left-4 flex gap-2 z-20">
+                           <button onClick={() => openModal('resource', res)} className="bg-white p-2 rounded-full shadow text-blue-500 hover:text-blue-700"><Edit size={16}/></button>
+                           <button onClick={() => handleDeleteResource(res.id)} className="bg-white p-2 rounded-full shadow text-red-400 hover:text-red-600"><Trash2 size={16}/></button>
+                        </div>
+                        
+                        <div className="flex gap-4">
+                           <div className="w-24 h-24 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0 border border-gray-200">
+                             {res.image ? (
+                               <img src={res.image} alt="preview" className="w-full h-full object-cover" />
+                             ) : (
+                               <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">لا توجد صورة</div>
+                             )}
+                           </div>
+                           <div className="flex flex-col flex-grow">
+                              <span className="text-xs font-bold text-secondary bg-secondary/10 px-2 py-1 rounded w-fit mb-2">{catName}</span>
+                              <h3 className="font-bold text-primary mb-1">{res.title}</h3>
+                              <p className="text-xs text-gray-500 mb-2 line-clamp-2">{res.description}</p>
+                              <a href={res.url} target="_blank" className="text-xs text-primary flex items-center gap-1 hover:underline mt-auto">
+                                {res.url} <ExternalLink size={10} />
+                              </a>
+                           </div>
+                        </div>
+                      </Card>
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -207,8 +267,8 @@ export default function AdminPage({ initialData, onUpdate }: AdminPageProps) {
 
       {/* --- MODALS --- */}
       
-      {/* Create Quote Modal */}
-      <Modal isOpen={isModalOpen && modalType === 'quote'} onClose={() => setIsModalOpen(false)} title="إضافة اقتباس جديد">
+      {/* Quote Modal */}
+      <Modal isOpen={isModalOpen && modalType === 'quote'} onClose={() => setIsModalOpen(false)} title={editingId ? "تعديل اقتباس" : "إضافة اقتباس جديد"}>
          <div className="space-y-4">
             <Input 
               label="نص الاقتباس" 
@@ -223,14 +283,35 @@ export default function AdminPage({ initialData, onUpdate }: AdminPageProps) {
               placeholder="اسم صاحب الاقتباس"
             />
             <div className="flex justify-end pt-4">
-              <Button onClick={saveNewQuote} disabled={loadingAction}>{loadingAction ? 'جاري الحفظ...' : 'حفظ'}</Button>
+              <Button onClick={saveQuote} disabled={loadingAction}>{loadingAction ? 'جاري الحفظ...' : 'حفظ'}</Button>
             </div>
          </div>
       </Modal>
 
-      {/* Create Resource Modal */}
-      <Modal isOpen={isModalOpen && modalType === 'resource'} onClose={() => setIsModalOpen(false)} title="إضافة موقع جديد">
+       {/* Category Modal */}
+       <Modal isOpen={isModalOpen && modalType === 'category'} onClose={() => setIsModalOpen(false)} title="إضافة تصنيف جديد">
          <div className="space-y-4">
+            <Input 
+              label="اسم التصنيف" 
+              value={newCategory.name} 
+              onChange={(e) => setNewCategory({...newCategory, name: e.target.value})}
+              placeholder="مثال: خطوط، صور، أدوات..."
+            />
+            <div className="flex justify-end pt-4">
+              <Button onClick={saveCategory} disabled={loadingAction}>{loadingAction ? 'جاري الحفظ...' : 'حفظ'}</Button>
+            </div>
+         </div>
+      </Modal>
+
+      {/* Resource Modal */}
+      <Modal isOpen={isModalOpen && modalType === 'resource'} onClose={() => setIsModalOpen(false)} title={editingId ? "تعديل بيانات الموقع" : "إضافة موقع جديد"}>
+         <div className="space-y-4">
+            <Select 
+              label="التصنيف"
+              value={newResource.categoryId}
+              onChange={(e) => setNewResource({...newResource, categoryId: e.target.value})}
+              options={initialData.categories.map(c => ({ value: c.id, label: c.name }))}
+            />
             <Input 
               label="اسم الموقع" 
               value={newResource.title} 
@@ -256,7 +337,7 @@ export default function AdminPage({ initialData, onUpdate }: AdminPageProps) {
               placeholder="https://..."
             />
             <div className="flex justify-end pt-4">
-              <Button onClick={saveNewResource} disabled={loadingAction}>{loadingAction ? 'جاري الحفظ...' : 'حفظ'}</Button>
+              <Button onClick={saveResource} disabled={loadingAction}>{loadingAction ? 'جاري الحفظ...' : 'حفظ'}</Button>
             </div>
          </div>
       </Modal>

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ExternalLink, Quote as QuoteIcon } from 'lucide-react';
-import { AppData, Quote } from '../types';
+import { ExternalLink, Quote as QuoteIcon, Folder } from 'lucide-react';
+import { AppData, Quote, Resource, Category } from '../types';
 import { SectionTitle, Card } from '../components/UIComponents';
 
 interface HomeProps {
@@ -10,6 +10,7 @@ interface HomeProps {
 
 // Cast motion components to any to avoid type errors
 const MotionDiv = motion.div as any;
+const MotionButton = motion.button as any;
 
 // --- Hero Section Component ---
 const Hero = ({ quotes }: { quotes: Quote[] }) => {
@@ -62,14 +63,14 @@ const Hero = ({ quotes }: { quotes: Quote[] }) => {
           className="mb-8"
         >
           <div className="inline-block px-4 py-2 bg-white/60 backdrop-blur-sm rounded-full text-primary font-bold text-sm mb-6 border border-white shadow-sm">
-            أهلاً بك في ركنك المفضل ☕
+            نصمم نجاحك، شريحة تلو الأخرى
           </div>
           <h1 className="text-5xl md:text-7xl font-black text-primary leading-[1.3] md:leading-[1.4] mb-6">
-            <span className="block">كل ما يحتاجه المصمم...</span>
-            <span className="text-transparent bg-clip-text bg-gradient-to-l from-primary to-secondary">بمكان واحد</span>
+            <span className="block">الإبداع في كل</span>
+            <span className="text-transparent bg-clip-text bg-gradient-to-l from-primary to-secondary">تفاصيل العرض</span>
           </h1>
           <p className="text-xl text-gray-600 max-w-2xl mx-auto mb-10 leading-relaxed">
-            <span className="font-bold text-primary">مساحتك الخاصة للوصول إلى الأدوات الأكثر استخدامًا</span>
+            في <span className="font-bold text-primary">MySlide</span>، نجمع بين التفكير الاستراتيجي والتصميم الهندسي الدقيق لنقدم عروضاً تقديمية تترك أثراً لا يمحى.
           </p>
         </MotionDiv>
 
@@ -100,7 +101,6 @@ const Hero = ({ quotes }: { quotes: Quote[] }) => {
                 </MotionDiv>
               )}
             </AnimatePresence>
-            {/* Removed progress bar as it doesn't make sense for a 6-hour duration visually */}
           </Card>
         </div>
       </div>
@@ -109,61 +109,109 @@ const Hero = ({ quotes }: { quotes: Quote[] }) => {
 };
 
 // --- Resources Grid ---
-const Resources = ({ resources }: { resources: AppData['resources'] }) => (
-  <section className="py-24 bg-white relative">
-    <div className="container mx-auto px-4">
-      <SectionTitle subtitle="أدوات المصممين">المواقع الهامة</SectionTitle>
-      
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-        {resources.map((resource, idx) => (
-          <MotionDiv
-            key={resource.id}
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: idx * 0.1 }}
+const Resources = ({ resources, categories }: { resources: Resource[], categories: Category[] }) => {
+  const [activeCategory, setActiveCategory] = useState<string>('all');
+
+  const filteredResources = activeCategory === 'all' 
+    ? resources 
+    : resources.filter(res => res.categoryId === activeCategory);
+
+  return (
+    <section className="py-24 bg-white relative">
+      <div className="container mx-auto px-4">
+        <SectionTitle subtitle="أدوات المصممين">المواقع الهامة</SectionTitle>
+        
+        {/* Categories Tabs */}
+        <div className="flex flex-wrap justify-center gap-3 mb-12">
+          <button
+            onClick={() => setActiveCategory('all')}
+            className={`px-6 py-3 rounded-full font-bold transition-all border-2 ${
+              activeCategory === 'all' 
+                ? 'bg-primary text-white border-primary shadow-lg shadow-primary/30' 
+                : 'bg-white text-gray-500 border-gray-200 hover:border-primary hover:text-primary'
+            }`}
           >
-            <Card className="group h-full flex flex-col overflow-hidden">
-              <div className="h-48 overflow-hidden relative border-b border-gray-100">
-                <div className="absolute inset-0 bg-primary/20 group-hover:bg-transparent transition-colors z-10 duration-500"></div>
-                <img 
-                  src={resource.image} 
-                  alt={resource.title} 
-                  className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700"
-                />
-              </div>
-              <div className="p-6 flex flex-col flex-grow">
-                <h3 className="text-xl font-bold text-primary mb-2">{resource.title}</h3>
-                {resource.description && (
-                  <p className="text-gray-500 text-sm mb-4 line-clamp-3 leading-relaxed">
-                    {resource.description}
-                  </p>
-                )}
-                <div className="mt-auto pt-2">
-                  <a 
-                    href={resource.url} 
-                    target="_blank" 
-                    rel="noreferrer"
-                    className="flex items-center gap-2 text-secondary font-bold group-hover:text-primary transition-colors text-sm"
-                  >
-                    <span>زيارة الموقع</span>
-                    <ExternalLink size={14} />
-                  </a>
-                </div>
-              </div>
-            </Card>
-          </MotionDiv>
-        ))}
+            الكل
+          </button>
+          {categories.map((cat) => (
+             <button
+              key={cat.id}
+              onClick={() => setActiveCategory(cat.id)}
+              className={`px-6 py-3 rounded-full font-bold transition-all border-2 flex items-center gap-2 ${
+                activeCategory === cat.id 
+                  ? 'bg-primary text-white border-primary shadow-lg shadow-primary/30' 
+                  : 'bg-white text-gray-500 border-gray-200 hover:border-primary hover:text-primary'
+              }`}
+            >
+              <span>{cat.name}</span>
+            </button>
+          ))}
+        </div>
+
+        <MotionDiv 
+          layout 
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8"
+        >
+          <AnimatePresence>
+            {filteredResources.map((resource) => (
+              <MotionDiv
+                layout
+                key={resource.id}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                transition={{ duration: 0.3 }}
+              >
+                <Card className="group h-full flex flex-col overflow-hidden">
+                  <div className="h-48 overflow-hidden relative border-b border-gray-100">
+                    <div className="absolute inset-0 bg-primary/20 group-hover:bg-transparent transition-colors z-10 duration-500"></div>
+                    <img 
+                      src={resource.image} 
+                      alt={resource.title} 
+                      className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700"
+                    />
+                  </div>
+                  <div className="p-6 flex flex-col flex-grow">
+                    <h3 className="text-xl font-bold text-primary mb-2">{resource.title}</h3>
+                    {resource.description && (
+                      <p className="text-gray-500 text-sm mb-4 line-clamp-3 leading-relaxed">
+                        {resource.description}
+                      </p>
+                    )}
+                    <div className="mt-auto pt-2">
+                      <a 
+                        href={resource.url} 
+                        target="_blank" 
+                        rel="noreferrer"
+                        className="flex items-center gap-2 text-secondary font-bold group-hover:text-primary transition-colors text-sm"
+                      >
+                        <span>زيارة الموقع</span>
+                        <ExternalLink size={14} />
+                      </a>
+                    </div>
+                  </div>
+                </Card>
+              </MotionDiv>
+            ))}
+          </AnimatePresence>
+        </MotionDiv>
+        
+        {filteredResources.length === 0 && (
+          <div className="text-center py-20 text-gray-400">
+            <Folder size={48} className="mx-auto mb-4 opacity-50" />
+            <p>لا توجد مواقع في هذا التصنيف حالياً</p>
+          </div>
+        )}
       </div>
-    </div>
-  </section>
-);
+    </section>
+  );
+};
 
 export default function HomePage({ data }: HomeProps) {
   return (
     <>
       <Hero quotes={data.quotes} />
-      <Resources resources={data.resources} />
+      <Resources resources={data.resources} categories={data.categories} />
     </>
   );
 }
