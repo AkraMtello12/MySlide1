@@ -7,7 +7,7 @@ import {
 } from '../services/storage';
 import { AppData, Quote, Resource, SlideWork, CategoryConfig } from '../types';
 import { Button, Input, TextArea, Card, Modal } from '../components/UIComponents';
-import { Plus, Trash2, Save, Image, Type, Link as LinkIcon, Edit, Loader2, LogOut, Settings, Shield, ShieldAlert, Lock, Unlock } from 'lucide-react';
+import { Plus, Trash2, Save, Image, Type, Link as LinkIcon, Edit, Loader2, LogOut, Settings, Shield, Lock, Unlock } from 'lucide-react';
 
 type Tab = 'quotes' | 'resources' | 'guidelines' | 'portfolio' | 'settings';
 
