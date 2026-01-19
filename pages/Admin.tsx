@@ -1,33 +1,54 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   addQuoteToDB, deleteQuoteFromDB, updateQuoteInDB,
   addResourceToDB, deleteResourceFromDB, updateResourceInDB,
-  addCategoryToDB, deleteCategoryFromDB
+  addWorkToDB, deleteWorkFromDB, updateWorkInDB,
+  saveGuidelinesToDB, saveCategoriesConfigToDB
 } from '../services/storage';
-import { AppData } from '../types';
-import { Button, Input, TextArea, Card, Modal, Select } from '../components/UIComponents';
-import { Plus, Trash2, Link as LinkIcon, Type, Loader2, LogOut, Folder, Edit, ExternalLink, Lock } from 'lucide-react';
+import { AppData, Quote, Resource, SlideWork, CategoryConfig } from '../types';
+import { Button, Input, TextArea, Card, Modal } from '../components/UIComponents';
+import { Plus, Trash2, Save, Image, Type, Link as LinkIcon, Edit, Loader2, LogOut, Settings, Shield, ShieldAlert, Lock, Unlock } from 'lucide-react';
 
-type Tab = 'quotes' | 'resources' | 'categories';
+type Tab = 'quotes' | 'resources' | 'guidelines' | 'portfolio' | 'settings';
 
 interface AdminPageProps {
   initialData: AppData;
   onUpdate: () => void; 
 }
 
+// Icon mapping
+const ICONS = {
+  quotes: Type,
+  resources: LinkIcon,
+  guidelines: Edit,
+  portfolio: Image,
+};
+
 export default function AdminPage({ initialData, onUpdate }: AdminPageProps) {
   const [activeTab, setActiveTab] = useState<Tab>('quotes');
   const [loadingAction, setLoadingAction] = useState(false);
+  const [guidelinesContent, setGuidelinesContent] = useState(initialData.guidelines.content);
+  
+  // Local state for categories to allow editing before saving
+  const [categories, setCategories] = useState<CategoryConfig[]>(initialData.categories);
+
+  // Update local categories if initialData changes (after a refetch)
+  useEffect(() => {
+    setCategories(initialData.categories);
+  }, [initialData.categories]);
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [modalType, setModalType] = useState<'quote' | 'resource' | 'category' | null>(null);
-  const [editingId, setEditingId] = useState<string | null>(null); // Track if editing
+  const [modalType, setModalType] = useState<'quote' | 'resource' | 'work' | null>(null);
 
   // Form States
   const [newQuote, setNewQuote] = useState({ text: '', author: '' });
-  const [newResource, setNewResource] = useState({ title: '', url: '', image: '', description: '', categoryId: '' });
-  const [newCategory, setNewCategory] = useState({ name: '', password: '' });
+  const [newResource, setNewResource] = useState({ title: '', url: '', image: '', description: '' });
+  const [newWork, setNewWork] = useState({ title: '', designerName: '', imageUrl: '' });
+
+  // Helpers to get current category config
+  const getCatConfig = (id: string) => categories.find(c => c.id === id);
+  const isProtected = (id: string) => getCatConfig(id)?.isProtected || false;
 
   // --- Handlers ---
   
@@ -38,61 +59,42 @@ export default function AdminPage({ initialData, onUpdate }: AdminPageProps) {
     }
   };
 
-  const openModal = (type: 'quote' | 'resource' | 'category', editItem?: any) => {
-    setModalType(type);
-    setEditingId(editItem ? editItem.id : null);
+  const openModal = (type: 'quote' | 'resource' | 'work') => {
+    // Check protection before opening
+    let catId = '';
+    if (type === 'quote') catId = 'quotes';
+    if (type === 'resource') catId = 'resources';
+    if (type === 'work') catId = 'portfolio';
 
-    if (type === 'quote') {
-      if (editItem) {
-         setNewQuote({ text: editItem.text, author: editItem.author });
-      } else {
-         setNewQuote({ text: '', author: '' });
-      }
-    } else if (type === 'resource') {
-      if (editItem) {
-        setNewResource({ 
-          title: editItem.title, 
-          url: editItem.url, 
-          image: editItem.image, 
-          description: editItem.description || '', 
-          categoryId: editItem.categoryId || '' 
-        });
-      } else {
-        setNewResource({ 
-          title: '', 
-          url: '', 
-          image: '', 
-          description: '', 
-          categoryId: initialData.categories.length > 0 ? initialData.categories[0].id : '' 
-        });
-      }
-    } else if (type === 'category') {
-       if (editItem) {
-         // Note: In a real app we might not want to show the password back, but for this scope it's fine
-         setNewCategory({ name: editItem.name, password: editItem.password || '' });
-       } else {
-         setNewCategory({ name: '', password: '' });
-       }
+    if (isProtected(catId)) {
+      alert("هذا المجلد محمي. لا يمكن الإضافة إليه.");
+      return;
     }
-    
+
+    setModalType(type);
+    setNewQuote({ text: '', author: '' });
+    setNewResource({ title: '', url: '', image: '', description: '' });
+    setNewWork({ title: '', designerName: '', imageUrl: '' });
     setIsModalOpen(true);
   };
 
   // --- Quote Logic ---
-  const saveQuote = async () => {
+  const saveNewQuote = async () => {
     if (!newQuote.text) return alert("الرجاء إدخال النص");
     setLoadingAction(true);
-    if (editingId) {
-      await updateQuoteInDB(editingId, newQuote);
-    } else {
-      await addQuoteToDB({ ...newQuote, active: true });
-    }
+    await addQuoteToDB({ ...newQuote, active: true });
     await onUpdate();
     setIsModalOpen(false);
     setLoadingAction(false);
   };
 
+  const handleUpdateQuote = async (id: string, field: keyof Quote, value: string) => {
+    if (isProtected('quotes')) return alert("المجلد محمي");
+    await updateQuoteInDB(id, { [field]: value });
+  };
+
   const handleDeleteQuote = async (id: string) => {
+    if (isProtected('quotes')) return alert("المجلد محمي");
     if (!confirm('هل أنت متأكد من الحذف؟')) return;
     setLoadingAction(true);
     await deleteQuoteFromDB(id);
@@ -101,20 +103,22 @@ export default function AdminPage({ initialData, onUpdate }: AdminPageProps) {
   };
 
   // --- Resource Logic ---
-  const saveResource = async () => {
-    if (!newResource.title || !newResource.url || !newResource.categoryId) return alert("الرجاء إدخال الاسم، الرابط، والتصنيف");
+  const saveNewResource = async () => {
+    if (!newResource.title || !newResource.url) return alert("الرجاء إدخال الاسم والرابط");
     setLoadingAction(true);
-    if (editingId) {
-       await updateResourceInDB(editingId, newResource);
-    } else {
-       await addResourceToDB({ ...newResource });
-    }
+    await addResourceToDB({ ...newResource });
     await onUpdate();
     setIsModalOpen(false);
     setLoadingAction(false);
   };
 
+  const handleUpdateResource = async (id: string, field: keyof Resource, value: string) => {
+    if (isProtected('resources')) return alert("المجلد محمي");
+    await updateResourceInDB(id, { [field]: value });
+  };
+
   const handleDeleteResource = async (id: string) => {
+    if (isProtected('resources')) return alert("المجلد محمي");
     if (!confirm('هل أنت متأكد من الحذف؟')) return;
     setLoadingAction(true);
     await deleteResourceFromDB(id);
@@ -122,31 +126,54 @@ export default function AdminPage({ initialData, onUpdate }: AdminPageProps) {
     setLoadingAction(false);
   };
 
-  // --- Category Logic ---
-  const saveCategory = async () => {
-    if (!newCategory.name) return alert("الرجاء إدخال اسم التصنيف");
+  // --- Portfolio Logic ---
+  const saveNewWork = async () => {
+    if (!newWork.title) return alert("الرجاء إدخال عنوان المشروع");
     setLoadingAction(true);
-    // If we are editing (although updateCategory is not fully implemented in storage.ts based on previous context, 
-    // we should ideally support it. For now, we will just add. 
-    // Assuming addCategoryToDB handles basic add. 
-    // To support edit properly, we'd need updateCategoryInDB. 
-    // Since the prompt didn't ask explicitly for Category Edit but "Control Panel options", 
-    // I will stick to Add/Delete to avoid breaking changes unless I add the function.
-    // However, I will treat this as ADD for now as per existing logic.
-    await addCategoryToDB({ ...newCategory });
+    await addWorkToDB({ ...newWork });
     await onUpdate();
     setIsModalOpen(false);
     setLoadingAction(false);
   };
 
-  const handleDeleteCategory = async (id: string) => {
-    if (!confirm('هل أنت متأكد من الحذف؟ سيتم إخفاء المواقع المرتبطة بهذا التصنيف.')) return;
+  const handleUpdateWork = async (id: string, field: keyof SlideWork, value: string) => {
+    if (isProtected('portfolio')) return alert("المجلد محمي");
+    await updateWorkInDB(id, { [field]: value });
+  };
+
+  const handleDeleteWork = async (id: string) => {
+    if (isProtected('portfolio')) return alert("المجلد محمي");
+    if (!confirm('هل أنت متأكد من الحذف؟')) return;
     setLoadingAction(true);
-    await deleteCategoryFromDB(id);
+    await deleteWorkFromDB(id);
     await onUpdate();
     setLoadingAction(false);
   };
 
+  // --- Guidelines Save ---
+  const handleSaveGuidelines = async () => {
+    if (isProtected('guidelines')) return alert("المجلد محمي");
+    setLoadingAction(true);
+    await saveGuidelinesToDB(guidelinesContent);
+    await onUpdate();
+    setLoadingAction(false);
+    alert("تم حفظ اللائحة بنجاح");
+  };
+
+  // --- Settings / Categories Logic ---
+  const handleCategoryChange = (index: number, field: keyof CategoryConfig, value: any) => {
+    const updated = [...categories];
+    updated[index] = { ...updated[index], [field]: value };
+    setCategories(updated);
+  };
+
+  const saveSettings = async () => {
+    setLoadingAction(true);
+    await saveCategoriesConfigToDB(categories);
+    await onUpdate();
+    setLoadingAction(false);
+    alert("تم تحديث إعدادات المجلدات");
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 py-12">
@@ -164,20 +191,32 @@ export default function AdminPage({ initialData, onUpdate }: AdminPageProps) {
           
           {/* Sidebar Tabs */}
           <div className="w-full md:w-64 bg-primary text-white p-6 flex flex-col gap-2">
-            {[
-              { id: 'quotes', label: 'إدارة الاقتباسات', icon: Type },
-              { id: 'categories', label: 'التصنيفات', icon: Folder },
-              { id: 'resources', label: 'المواقع الهامة', icon: LinkIcon },
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id as Tab)}
-                className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${activeTab === tab.id ? 'bg-secondary text-primary font-bold shadow-lg' : 'hover:bg-white/10'}`}
-              >
-                <tab.icon size={18} />
-                <span>{tab.label}</span>
-              </button>
-            ))}
+            {categories.map((cat) => {
+              const Icon = ICONS[cat.id as keyof typeof ICONS];
+              return (
+                <button
+                  key={cat.id}
+                  onClick={() => setActiveTab(cat.id as Tab)}
+                  className={`flex items-center justify-between px-4 py-3 rounded-lg transition-all ${activeTab === cat.id ? 'bg-secondary text-primary font-bold shadow-lg' : 'hover:bg-white/10'}`}
+                >
+                  <div className="flex items-center gap-3">
+                    <Icon size={18} />
+                    <span>{cat.label}</span>
+                  </div>
+                  {cat.isProtected && <Lock size={14} className="text-white/50" />}
+                </button>
+              );
+            })}
+            
+            <div className="h-px bg-white/10 my-2"></div>
+            
+            <button
+              onClick={() => setActiveTab('settings')}
+              className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${activeTab === 'settings' ? 'bg-secondary text-primary font-bold shadow-lg' : 'hover:bg-white/10'}`}
+            >
+              <Settings size={18} />
+              <span>إعدادات المجلدات</span>
+            </button>
           </div>
 
           {/* Content Area */}
@@ -193,46 +232,34 @@ export default function AdminPage({ initialData, onUpdate }: AdminPageProps) {
             {activeTab === 'quotes' && (
               <div className="space-y-6">
                 <div className="flex justify-between items-center">
-                   <h2 className="text-2xl font-bold text-primary">الاقتباسات</h2>
-                   <Button onClick={() => openModal('quote')} className="text-sm py-2"><Plus size={16} /> إضافة جديد</Button>
+                   <div className="flex items-center gap-3">
+                      <h2 className="text-2xl font-bold text-primary">{getCatConfig('quotes')?.label}</h2>
+                      {isProtected('quotes') && <span className="bg-red-100 text-red-600 text-xs px-2 py-1 rounded-full flex items-center gap-1"><Lock size={12}/> محمي</span>}
+                   </div>
+                   <Button onClick={() => openModal('quote')} className="text-sm py-2" disabled={isProtected('quotes')}><Plus size={16} /> إضافة جديد</Button>
                 </div>
                 <div className="grid gap-4">
                   {initialData.quotes.map((quote) => (
-                    <Card key={quote.id} className="p-4 flex flex-col gap-3 relative border-l-4 border-secondary group">
-                      <div className="absolute top-4 left-4 flex gap-2">
-                        <button onClick={() => openModal('quote', quote)} className="text-blue-400 hover:text-blue-600"><Edit size={18}/></button>
-                        <button onClick={() => handleDeleteQuote(quote.id)} className="text-red-400 hover:text-red-600"><Trash2 size={18}/></button>
-                      </div>
-                      <p className="font-bold text-lg">{quote.text}</p>
-                      <p className="text-gray-500 text-sm">{quote.author}</p>
-                    </Card>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Categories Tab */}
-            {activeTab === 'categories' && (
-              <div className="space-y-6">
-                <div className="flex justify-between items-center">
-                   <h2 className="text-2xl font-bold text-primary">التصنيفات (المجلدات)</h2>
-                   <Button onClick={() => openModal('category')} className="text-sm py-2"><Plus size={16} /> إضافة تصنيف</Button>
-                </div>
-                <div className="grid md:grid-cols-3 gap-4">
-                  {initialData.categories.map((cat) => (
-                    <Card key={cat.id} className="p-6 flex items-center justify-between border-b-4 border-secondary">
-                       <div className="flex items-center gap-3">
-                          {cat.password ? (
-                            <Lock className="text-red-400" size={20} />
-                          ) : (
-                            <Folder className="text-secondary" size={20} />
-                          )}
-                          <div className="flex flex-col">
-                            <span className="font-bold text-lg text-primary">{cat.name}</span>
-                            {cat.password && <span className="text-xs text-red-400 font-bold">محمي بكلمة مرور</span>}
-                          </div>
-                       </div>
-                       <button onClick={() => handleDeleteCategory(cat.id)} className="text-red-400 hover:text-red-600"><Trash2 size={18}/></button>
+                    <Card key={quote.id} className="p-4 flex flex-col gap-3 relative border-l-4 border-secondary">
+                      <button 
+                        onClick={() => handleDeleteQuote(quote.id)} 
+                        disabled={isProtected('quotes')}
+                        className={`absolute top-4 left-4 ${isProtected('quotes') ? 'text-gray-300 cursor-not-allowed' : 'text-red-400 hover:text-red-600'}`}
+                      >
+                        <Trash2 size={18}/>
+                      </button>
+                      <Input 
+                        label="نص الاقتباس" 
+                        defaultValue={quote.text} 
+                        disabled={isProtected('quotes')}
+                        onBlur={(e) => handleUpdateQuote(quote.id, 'text', e.target.value)}
+                      />
+                      <Input 
+                        label="القائل" 
+                        defaultValue={quote.author} 
+                        disabled={isProtected('quotes')}
+                        onBlur={(e) => handleUpdateQuote(quote.id, 'author', e.target.value)}
+                      />
                     </Card>
                   ))}
                 </div>
@@ -243,45 +270,193 @@ export default function AdminPage({ initialData, onUpdate }: AdminPageProps) {
             {activeTab === 'resources' && (
               <div className="space-y-6">
                 <div className="flex justify-between items-center">
-                   <h2 className="text-2xl font-bold text-primary">المواقع الهامة</h2>
-                   <Button onClick={() => openModal('resource')} className="text-sm py-2"><Plus size={16} /> إضافة موقع</Button>
+                   <div className="flex items-center gap-3">
+                      <h2 className="text-2xl font-bold text-primary">{getCatConfig('resources')?.label}</h2>
+                      {isProtected('resources') && <span className="bg-red-100 text-red-600 text-xs px-2 py-1 rounded-full flex items-center gap-1"><Lock size={12}/> محمي</span>}
+                   </div>
+                   <Button onClick={() => openModal('resource')} className="text-sm py-2" disabled={isProtected('resources')}><Plus size={16} /> إضافة موقع</Button>
                 </div>
                 <div className="grid md:grid-cols-2 gap-4">
-                  {initialData.resources.map((res) => {
-                    const cat = initialData.categories.find(c => c.id === res.categoryId);
-                    const catName = cat?.name || 'غير مصنف';
-                    const isLocked = !!cat?.password;
-                    
-                    return (
-                      <Card key={res.id} className="p-4 flex flex-col gap-3 relative group">
-                        <div className="absolute top-4 left-4 flex gap-2 z-20">
-                           <button onClick={() => openModal('resource', res)} className="bg-white p-2 rounded-full shadow text-blue-500 hover:text-blue-700"><Edit size={16}/></button>
-                           <button onClick={() => handleDeleteResource(res.id)} className="bg-white p-2 rounded-full shadow text-red-400 hover:text-red-600"><Trash2 size={16}/></button>
-                        </div>
-                        
-                        <div className="flex gap-4">
-                           <div className="w-24 h-24 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0 border border-gray-200">
-                             {res.image ? (
-                               <img src={res.image} alt="preview" className="w-full h-full object-cover" />
-                             ) : (
-                               <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">لا توجد صورة</div>
-                             )}
-                           </div>
-                           <div className="flex flex-col flex-grow">
-                              <div className="flex items-center gap-2 mb-2">
-                                <span className="text-xs font-bold text-secondary bg-secondary/10 px-2 py-1 rounded w-fit">{catName}</span>
-                                {isLocked && <Lock size={12} className="text-red-400" />}
-                              </div>
-                              <h3 className="font-bold text-primary mb-1">{res.title}</h3>
-                              <p className="text-xs text-gray-500 mb-2 line-clamp-2">{res.description}</p>
-                              <a href={res.url} target="_blank" className="text-xs text-primary flex items-center gap-1 hover:underline mt-auto">
-                                {res.url} <ExternalLink size={10} />
-                              </a>
-                           </div>
-                        </div>
-                      </Card>
-                    );
-                  })}
+                  {initialData.resources.map((res) => (
+                    <Card key={res.id} className="p-4 flex flex-col gap-3 relative">
+                      <button 
+                        onClick={() => handleDeleteResource(res.id)} 
+                        disabled={isProtected('resources')}
+                        className={`absolute top-4 left-4 bg-white p-1 rounded-full shadow z-20 ${isProtected('resources') ? 'text-gray-300 cursor-not-allowed' : 'text-red-400 hover:text-red-600'}`}
+                      >
+                        <Trash2 size={18}/>
+                      </button>
+                      
+                      <div className="w-full h-32 bg-gray-100 rounded-lg overflow-hidden mb-2 relative group border border-gray-200">
+                        {res.image ? (
+                          <img src={res.image} alt="preview" className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-gray-400 text-sm">لا توجد صورة</div>
+                        )}
+                      </div>
+
+                      <Input 
+                        label="رابط الصورة (URL)" 
+                        defaultValue={res.image} 
+                        disabled={isProtected('resources')}
+                        onBlur={(e) => handleUpdateResource(res.id, 'image', e.target.value)}
+                      />
+                      <Input 
+                        label="اسم الموقع" 
+                        defaultValue={res.title} 
+                        disabled={isProtected('resources')}
+                        onBlur={(e) => handleUpdateResource(res.id, 'title', e.target.value)}
+                      />
+                      <TextArea 
+                        label="وصف الموقع" 
+                        defaultValue={res.description || ''}
+                        disabled={isProtected('resources')}
+                        onBlur={(e) => handleUpdateResource(res.id, 'description', e.target.value)}
+                        className="min-h-[80px]"
+                      />
+                      <Input 
+                        label="رابط الموقع" 
+                        defaultValue={res.url} 
+                        disabled={isProtected('resources')}
+                        onBlur={(e) => handleUpdateResource(res.id, 'url', e.target.value)}
+                      />
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Guidelines Tab */}
+            {activeTab === 'guidelines' && (
+              <div className="space-y-6">
+                <div className="flex justify-between items-center">
+                   <div className="flex items-center gap-3">
+                      <h2 className="text-2xl font-bold text-primary">{getCatConfig('guidelines')?.label}</h2>
+                      {isProtected('guidelines') && <span className="bg-red-100 text-red-600 text-xs px-2 py-1 rounded-full flex items-center gap-1"><Lock size={12}/> محمي</span>}
+                   </div>
+                   <Button onClick={handleSaveGuidelines} disabled={isProtected('guidelines')}><Save size={16} /> حفظ التعديلات</Button>
+                </div>
+                <TextArea 
+                  label="المحتوى النصي (Markdown)" 
+                  value={guidelinesContent}
+                  onChange={(e) => setGuidelinesContent(e.target.value)}
+                  disabled={isProtected('guidelines')}
+                  className="min-h-[400px] font-mono text-base"
+                />
+              </div>
+            )}
+
+            {/* Portfolio Tab */}
+            {activeTab === 'portfolio' && (
+              <div className="space-y-6">
+                 <div className="flex justify-between items-center">
+                   <div className="flex items-center gap-3">
+                      <h2 className="text-2xl font-bold text-primary">{getCatConfig('portfolio')?.label}</h2>
+                      {isProtected('portfolio') && <span className="bg-red-100 text-red-600 text-xs px-2 py-1 rounded-full flex items-center gap-1"><Lock size={12}/> محمي</span>}
+                   </div>
+                   <Button onClick={() => openModal('work')} className="text-sm py-2" disabled={isProtected('portfolio')}><Plus size={16} /> إضافة عمل</Button>
+                </div>
+                <div className="grid md:grid-cols-2 gap-4">
+                  {initialData.portfolio.map((work) => (
+                    <Card key={work.id} className="p-4 flex flex-col gap-3 relative">
+                      <button 
+                        onClick={() => handleDeleteWork(work.id)} 
+                        disabled={isProtected('portfolio')}
+                        className={`absolute top-4 left-4 bg-white p-1 rounded-full shadow z-20 ${isProtected('portfolio') ? 'text-gray-300 cursor-not-allowed' : 'text-red-400 hover:text-red-600'}`}
+                      >
+                        <Trash2 size={18}/>
+                      </button>
+                      
+                      <div className="w-full h-40 bg-gray-100 rounded-lg overflow-hidden mb-2 relative group border border-gray-200">
+                         {work.imageUrl ? (
+                           <img src={work.imageUrl} alt="preview" className="w-full h-full object-cover" />
+                         ) : (
+                           <div className="w-full h-full flex items-center justify-center text-gray-400 text-sm">لا توجد صورة</div>
+                         )}
+                      </div>
+
+                      <Input 
+                        label="رابط الصورة (URL)" 
+                        defaultValue={work.imageUrl}
+                        disabled={isProtected('portfolio')}
+                        onBlur={(e) => handleUpdateWork(work.id, 'imageUrl', e.target.value)}
+                      />
+                      <Input 
+                        label="عنوان المشروع" 
+                        defaultValue={work.title} 
+                        disabled={isProtected('portfolio')}
+                        onBlur={(e) => handleUpdateWork(work.id, 'title', e.target.value)}
+                      />
+                      <Input 
+                        label="اسم المصمم" 
+                        defaultValue={work.designerName} 
+                        disabled={isProtected('portfolio')}
+                        onBlur={(e) => handleUpdateWork(work.id, 'designerName', e.target.value)}
+                      />
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Settings Tab (NEW) */}
+            {activeTab === 'settings' && (
+              <div className="space-y-6">
+                <div className="flex justify-between items-center">
+                   <h2 className="text-2xl font-bold text-primary">إعدادات المجلدات</h2>
+                   <Button onClick={saveSettings}><Save size={16} /> حفظ الإعدادات</Button>
+                </div>
+                
+                <div className="bg-blue-50 border border-blue-100 p-4 rounded-xl mb-6">
+                  <div className="flex items-start gap-3">
+                     <Shield className="text-secondary flex-shrink-0 mt-1" />
+                     <p className="text-sm text-gray-600 leading-relaxed">
+                       يمكنك هنا تغيير مسميات الأقسام في لوحة التحكم. 
+                       <br/>
+                       <strong>وضع الحماية:</strong> عند تفعيل الحماية لمجلد ما، سيتم منع "الإضافة"، "التعديل"، أو "الحذف" في ذلك القسم لضمان عدم تغيير البيانات عن طريق الخطأ.
+                     </p>
+                  </div>
+                </div>
+
+                <div className="grid gap-4">
+                  {categories.map((cat, index) => (
+                    <Card key={cat.id} className="p-6 flex items-center justify-between gap-4">
+                       <div className="flex-grow">
+                          <label className="text-xs font-bold text-gray-400 mb-1 block">اسم المجلد (ID: {cat.id})</label>
+                          <input 
+                            value={cat.label} 
+                            onChange={(e) => handleCategoryChange(index, 'label', e.target.value)}
+                            className="w-full text-lg font-bold text-primary bg-transparent border-b border-gray-200 focus:border-secondary outline-none py-1"
+                          />
+                       </div>
+                       
+                       <div className="flex items-center gap-4 border-r border-gray-100 pr-4">
+                          <div className="text-center">
+                            <label className="block text-xs text-gray-400 mb-2">الحالة</label>
+                            <button 
+                              onClick={() => handleCategoryChange(index, 'isProtected', !cat.isProtected)}
+                              className={`flex items-center gap-2 px-4 py-2 rounded-full font-bold text-sm transition-all ${
+                                cat.isProtected 
+                                ? 'bg-red-100 text-red-600 hover:bg-red-200' 
+                                : 'bg-green-100 text-green-600 hover:bg-green-200'
+                              }`}
+                            >
+                              {cat.isProtected ? (
+                                <>
+                                  <Lock size={16} />
+                                  <span>محمي</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Unlock size={16} />
+                                  <span>متاح</span>
+                                </>
+                              )}
+                            </button>
+                          </div>
+                       </div>
+                    </Card>
+                  ))}
                 </div>
               </div>
             )}
@@ -292,8 +467,8 @@ export default function AdminPage({ initialData, onUpdate }: AdminPageProps) {
 
       {/* --- MODALS --- */}
       
-      {/* Quote Modal */}
-      <Modal isOpen={isModalOpen && modalType === 'quote'} onClose={() => setIsModalOpen(false)} title={editingId ? "تعديل اقتباس" : "إضافة اقتباس جديد"}>
+      {/* Create Quote Modal */}
+      <Modal isOpen={isModalOpen && modalType === 'quote'} onClose={() => setIsModalOpen(false)} title="إضافة اقتباس جديد">
          <div className="space-y-4">
             <Input 
               label="نص الاقتباس" 
@@ -308,45 +483,14 @@ export default function AdminPage({ initialData, onUpdate }: AdminPageProps) {
               placeholder="اسم صاحب الاقتباس"
             />
             <div className="flex justify-end pt-4">
-              <Button onClick={saveQuote} disabled={loadingAction}>{loadingAction ? 'جاري الحفظ...' : 'حفظ'}</Button>
+              <Button onClick={saveNewQuote} disabled={loadingAction}>{loadingAction ? 'جاري الحفظ...' : 'حفظ'}</Button>
             </div>
          </div>
       </Modal>
 
-       {/* Category Modal */}
-       <Modal isOpen={isModalOpen && modalType === 'category'} onClose={() => setIsModalOpen(false)} title="إضافة تصنيف جديد">
+      {/* Create Resource Modal */}
+      <Modal isOpen={isModalOpen && modalType === 'resource'} onClose={() => setIsModalOpen(false)} title="إضافة موقع جديد">
          <div className="space-y-4">
-            <Input 
-              label="اسم التصنيف" 
-              value={newCategory.name} 
-              onChange={(e) => setNewCategory({...newCategory, name: e.target.value})}
-              placeholder="مثال: خطوط، صور، أدوات..."
-            />
-             <Input 
-              label="كلمة المرور (اختياري)" 
-              value={newCategory.password} 
-              onChange={(e) => setNewCategory({...newCategory, password: e.target.value})}
-              placeholder="اتركها فارغة لتصنيف عام"
-              type="text"
-            />
-            <p className="text-xs text-gray-500">
-               عند تعيين كلمة مرور، لن تظهر محتويات هذا التصنيف في قائمة "الكل"، وسيُطلب من المستخدم كلمة المرور لعرض المحتوى.
-            </p>
-            <div className="flex justify-end pt-4">
-              <Button onClick={saveCategory} disabled={loadingAction}>{loadingAction ? 'جاري الحفظ...' : 'حفظ'}</Button>
-            </div>
-         </div>
-      </Modal>
-
-      {/* Resource Modal */}
-      <Modal isOpen={isModalOpen && modalType === 'resource'} onClose={() => setIsModalOpen(false)} title={editingId ? "تعديل بيانات الموقع" : "إضافة موقع جديد"}>
-         <div className="space-y-4">
-            <Select 
-              label="التصنيف"
-              value={newResource.categoryId}
-              onChange={(e) => setNewResource({...newResource, categoryId: e.target.value})}
-              options={initialData.categories.map(c => ({ value: c.id, label: c.name + (c.password ? ' (محمي)' : '') }))}
-            />
             <Input 
               label="اسم الموقع" 
               value={newResource.title} 
@@ -372,7 +516,32 @@ export default function AdminPage({ initialData, onUpdate }: AdminPageProps) {
               placeholder="https://..."
             />
             <div className="flex justify-end pt-4">
-              <Button onClick={saveResource} disabled={loadingAction}>{loadingAction ? 'جاري الحفظ...' : 'حفظ'}</Button>
+              <Button onClick={saveNewResource} disabled={loadingAction}>{loadingAction ? 'جاري الحفظ...' : 'حفظ'}</Button>
+            </div>
+         </div>
+      </Modal>
+
+      {/* Create Work Modal */}
+      <Modal isOpen={isModalOpen && modalType === 'work'} onClose={() => setIsModalOpen(false)} title="إضافة عمل جديد">
+         <div className="space-y-4">
+            <Input 
+              label="عنوان المشروع" 
+              value={newWork.title} 
+              onChange={(e) => setNewWork({...newWork, title: e.target.value})}
+            />
+            <Input 
+              label="اسم المصمم" 
+              value={newWork.designerName} 
+              onChange={(e) => setNewWork({...newWork, designerName: e.target.value})}
+            />
+             <Input 
+              label="رابط صورة السلايد (URL)" 
+              value={newWork.imageUrl} 
+              onChange={(e) => setNewWork({...newWork, imageUrl: e.target.value})}
+              placeholder="https://..."
+            />
+            <div className="flex justify-end pt-4">
+              <Button onClick={saveNewWork} disabled={loadingAction}>{loadingAction ? 'جاري الحفظ...' : 'حفظ'}</Button>
             </div>
          </div>
       </Modal>

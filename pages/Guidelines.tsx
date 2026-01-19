@@ -2,9 +2,6 @@ import { motion } from 'framer-motion';
 import { ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
-// Cast motion components to any to avoid type errors
-const MotionDiv = motion.div as any;
-
 export default function GuidelinesPage({ content }: { content: string }) {
   // Simple markdown-ish parser for demo
   const renderContent = (text: string) => {
@@ -32,7 +29,7 @@ export default function GuidelinesPage({ content }: { content: string }) {
             <span className="text-secondary font-bold">اللائحة الداخلية</span>
          </div>
 
-         <MotionDiv 
+         <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             className="bg-white rounded-3xl p-8 md:p-16 shadow-xl border border-white/50"
@@ -40,7 +37,7 @@ export default function GuidelinesPage({ content }: { content: string }) {
            <div className="prose prose-lg max-w-none text-right font-sans">
               {renderContent(content)}
            </div>
-         </MotionDiv>
+         </motion.div>
        </div>
     </div>
   );

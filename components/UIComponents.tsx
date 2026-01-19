@@ -1,25 +1,20 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ChevronDown } from 'lucide-react';
-
-// Cast motion components to any to avoid type errors in this environment
-const MotionSpan = motion.span as any;
-const MotionH2 = motion.h2 as any;
-const MotionDiv = motion.div as any;
+import { X } from 'lucide-react';
 
 export const SectionTitle: React.FC<{ children: React.ReactNode; subtitle?: string }> = ({ children, subtitle }) => (
   <div className="mb-16 text-center relative z-10">
     {subtitle && (
-      <MotionSpan 
+      <motion.span 
         initial={{ opacity: 0, y: 10 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
         className="block text-secondary font-bold tracking-wider text-xl md:text-2xl mb-3"
       >
         {subtitle}
-      </MotionSpan>
+      </motion.span>
     )}
-    <MotionH2 
+    <motion.h2 
       initial={{ opacity: 0, y: 20 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
@@ -28,7 +23,7 @@ export const SectionTitle: React.FC<{ children: React.ReactNode; subtitle?: stri
     >
       {children}
       <span className="absolute -bottom-4 left-1/2 transform -translate-x-1/2 w-24 h-2 bg-secondary rounded-full opacity-80"></span>
-    </MotionH2>
+    </motion.h2>
   </div>
 );
 
@@ -93,26 +88,6 @@ export const TextArea: React.FC<React.TextareaHTMLAttributes<HTMLTextAreaElement
   </div>
 );
 
-export const Select: React.FC<React.SelectHTMLAttributes<HTMLSelectElement> & { label: string; options: { value: string; label: string }[] }> = ({ label, options, ...props }) => (
-  <div className="mb-4">
-    <label className="block text-sm font-bold text-primary mb-2">{label}</label>
-    <div className="relative">
-      <select 
-        className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:border-secondary focus:ring-2 focus:ring-secondary/20 outline-none transition-all bg-gray-50/50 appearance-none"
-        {...props} 
-      >
-        <option value="" disabled>اختر...</option>
-        {options.map(opt => (
-          <option key={opt.value} value={opt.value}>{opt.label}</option>
-        ))}
-      </select>
-      <div className="absolute left-3 top-1/2 transform -translate-y-1/2 pointer-events-none text-gray-500">
-        <ChevronDown size={18} />
-      </div>
-    </div>
-  </div>
-);
-
 export const Modal: React.FC<{
   isOpen: boolean;
   onClose: () => void;
@@ -122,14 +97,14 @@ export const Modal: React.FC<{
   <AnimatePresence>
     {isOpen && (
       <>
-        <MotionDiv
+        <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={onClose}
           className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
         />
-        <MotionDiv
+        <motion.div
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -146,7 +121,7 @@ export const Modal: React.FC<{
               {children}
             </div>
           </div>
-        </MotionDiv>
+        </motion.div>
       </>
     )}
   </AnimatePresence>

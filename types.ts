@@ -5,23 +5,35 @@ export interface Quote {
   active: boolean;
 }
 
-export interface Category {
-  id: string;
-  name: string;
-  password?: string; // Optional password for the category
-}
-
 export interface Resource {
   id: string;
   title: string;
   description?: string;
   url: string;
   image: string;
-  categoryId: string;
+}
+
+export interface SlideWork {
+  id: string;
+  imageUrl: string;
+  designerName: string;
+  title: string;
+}
+
+export interface GuidelinesData {
+  content: string;
+}
+
+export interface CategoryConfig {
+  id: 'quotes' | 'resources' | 'guidelines' | 'portfolio';
+  label: string;
+  isProtected: boolean;
 }
 
 export interface AppData {
   quotes: Quote[];
   resources: Resource[];
-  categories: Category[];
+  portfolio: SlideWork[];
+  guidelines: GuidelinesData;
+  categories: CategoryConfig[];
 }
