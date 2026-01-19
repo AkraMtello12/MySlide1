@@ -7,6 +7,9 @@ interface LoginProps {
   onLogin: () => void;
 }
 
+// Cast motion components to any to avoid type errors
+const MotionDiv = motion.div as any;
+
 export default function LoginPage({ onLogin }: LoginProps) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -23,7 +26,7 @@ export default function LoginPage({ onLogin }: LoginProps) {
 
   return (
     <div className="min-h-[80vh] flex items-center justify-center bg-background px-4">
-      <motion.div
+      <MotionDiv
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="w-full max-w-md"
@@ -56,13 +59,13 @@ export default function LoginPage({ onLogin }: LoginProps) {
             />
             
             {error && (
-              <motion.div 
+              <MotionDiv 
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 className="p-3 bg-red-50 text-red-500 text-sm rounded-lg font-bold text-center border border-red-100"
               >
                 {error}
-              </motion.div>
+              </MotionDiv>
             )}
 
             <Button type="submit" className="w-full">
@@ -70,7 +73,7 @@ export default function LoginPage({ onLogin }: LoginProps) {
             </Button>
           </form>
         </Card>
-      </motion.div>
+      </MotionDiv>
     </div>
   );
 }
