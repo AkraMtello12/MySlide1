@@ -9,12 +9,12 @@ import {
 } from 'firebase/firestore';
 import { AppData, Quote, Resource, Category } from '../types';
 
-// Fallback data in case of permission errors (common in fresh Firebase projects without setup)
+// Fallback data in case of TOTAL failure (network/permissions)
 const FALLBACK_DATA: AppData = {
   quotes: [
     { id: 'demo1', text: 'التصميم هو السفير الصامت لعلامتك التجارية.', author: 'بول راند', active: true },
     { id: 'demo2', text: 'البساطة هي قمة التعقيد.', author: 'ليوناردو دافنشي', active: true },
-    { id: 'demo3', text: 'يرجى تفعيل "Anonymous Auth" وإعداد "Firestore Rules" في Firebase Console لعرض البيانات الحقيقية.', author: 'تنبيه النظام', active: true }
+    { id: 'demo3', text: 'يرجى التأكد من إعداد قواعد البيانات (Rules) في Firebase.', author: 'تنبيه النظام', active: true }
   ],
   categories: [
     { id: 'cat_img', name: 'صور' },
@@ -37,14 +37,6 @@ const FALLBACK_DATA: AppData = {
       url: 'https://fonts.google.com', 
       image: 'https://lh3.googleusercontent.com/COxitq8kCuOiWI3EXK52Wz473l78HkLpCL28vJm0t2a6j8_2j3L6h7p6h8_2j3L6h7p6h8=w16383', 
       categoryId: 'cat_font' 
-    },
-    { 
-      id: 'res_3', 
-      title: 'Lucide Icons', 
-      description: 'مكتبة أيقونات مفتوحة المصدر نظيفة وجميلة.', 
-      url: 'https://lucide.dev', 
-      image: 'https://lucide.dev/og.png', 
-      categoryId: 'cat_icon' 
     }
   ]
 };
@@ -52,28 +44,51 @@ const FALLBACK_DATA: AppData = {
 // --- Fetch Data ---
 export const getAppData = async (): Promise<AppData> => {
   try {
-    const [quotesSnap, resourcesSnap, categoriesSnap] = await Promise.all([
+    // Use allSettled so if one collection fails (e.g. permission error), others can still succeed
+    const results = await Promise.allSettled([
       getDocs(collection(db, 'quotes')),
       getDocs(collection(db, 'resources')),
       getDocs(collection(db, 'categories'))
     ]);
 
-    const quotes = quotesSnap.docs.map(d => ({ id: d.id, ...d.data() } as Quote));
-    const resources = resourcesSnap.docs.map(d => ({ id: d.id, ...d.data() } as Resource));
-    const categories = categoriesSnap.docs.map(d => ({ id: d.id, ...d.data() } as Category));
-    
-    // If DB is empty, use fallback data to populate UI for first-time viewing
-    if (quotes.length === 0 && resources.length === 0 && categories.length === 0) {
-       console.log("Database empty, returning fallback data for demonstration.");
+    const quotes: Quote[] = [];
+    const resources: Resource[] = [];
+    const categories: Category[] = [];
+
+    // Process Quotes
+    if (results[0].status === 'fulfilled') {
+      results[0].value.docs.forEach(d => quotes.push({ id: d.id, ...d.data() } as Quote));
+    } else {
+      console.warn("Failed to fetch quotes:", results[0].reason);
+    }
+
+    // Process Resources
+    if (results[1].status === 'fulfilled') {
+      results[1].value.docs.forEach(d => resources.push({ id: d.id, ...d.data() } as Resource));
+    } else {
+      console.warn("Failed to fetch resources:", results[1].reason);
+    }
+
+    // Process Categories
+    if (results[2].status === 'fulfilled') {
+      results[2].value.docs.forEach(d => categories.push({ id: d.id, ...d.data() } as Category));
+    } else {
+      console.warn("Failed to fetch categories:", results[2].reason);
+    }
+
+    // Check if ALL failed. If so, return fallback.
+    if (results[0].status === 'rejected' && results[1].status === 'rejected' && results[2].status === 'rejected') {
+       console.warn("All collections failed to load. Returning Fallback Data.");
        return FALLBACK_DATA;
     }
+
+    // NOTE: We no longer check for "Empty DB". 
+    // If the DB is empty, we return empty arrays so the Admin sees the real state of their DB.
     
     return { quotes, resources, categories };
+
   } catch (error: any) {
-    // Log as warning instead of error to prevent console noise for expected permission issues in demo mode
-    console.warn("Firestore access failed. Switching to Demo Mode.", error.message || error);
-    
-    // Always return fallback data to ensure the app loads
+    console.error("Critical Error fetching data:", error);
     return FALLBACK_DATA;
   }
 };
