@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ExternalLink, Quote as QuoteIcon, Folder, Lock, Unlock, ArrowRight } from 'lucide-react';
 import { AppData, Quote, Resource, Category } from '../types';
