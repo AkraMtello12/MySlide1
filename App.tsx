@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-dom';
 import { LayoutDashboard, Menu, X, AlertTriangle } from 'lucide-react';
 import { getAppData } from './services/storage';
-import { isFirebaseConfigured } from './firebase';
+import { isFirebaseConfigured, auth } from './firebase';
+import { signInAnonymously } from 'firebase/auth';
 import { AppData } from './types';
 import HomePage from './pages/Home';
 import AdminPage from './pages/Admin';
@@ -10,7 +11,7 @@ import LoginPage from './pages/Login';
 import { Button } from './components/UIComponents';
 
 // Placeholder Logo URL
-const LOGO_URL = "https://i.postimg.cc/rpJ9jXZ6/My-Slide-Logo-2-06-removebg-preview.png";
+const LOGO_URL = "https://cdn-icons-png.flaticon.com/512/2881/2881031.png";
 
 const Navbar = () => {
   const location = useLocation();
@@ -82,11 +83,22 @@ export default function App() {
   const fetchData = async () => {
     try {
       setLoading(true);
+      
+      // Attempt anonymous login if not authenticated
+      if (!auth.currentUser) {
+        try {
+          await signInAnonymously(auth);
+        } catch (authErr) {
+          console.warn("Anonymous auth failed or not enabled. Proceeding to fetch data (will use fallback if denied).", authErr);
+        }
+      }
+
       const appData = await getAppData();
       setData(appData);
       setError(null);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      // If we get here, it means even fallback failed or some other major error
       setError("فشل في تحميل البيانات.");
     } finally {
       setLoading(false);
@@ -126,7 +138,7 @@ export default function App() {
     );
   }
 
-  // Minimalist loading screen - No text as requested
+  // Minimalist loading screen
   if (loading) return (
     <div className="h-screen flex items-center justify-center bg-background">
       <div className="animate-pulse">
@@ -137,10 +149,10 @@ export default function App() {
 
   if (error) return (
     <div className="h-screen flex flex-col items-center justify-center text-center p-4">
-      <div className="bg-red-50 text-red-600 p-6 rounded-xl border border-red-100 max-w-lg">
-        <h3 className="font-bold text-lg mb-2">عذراً</h3>
-        <p>{error}</p>
-        <Button className="mt-4 bg-red-600 hover:bg-red-700" onClick={() => window.location.reload()}>تحديث</Button>
+      <div className="bg-red-50 text-red-600 p-6 rounded-xl border border-red-100 max-w-lg shadow-lg">
+        <h3 className="font-bold text-lg mb-2">عذراً، حدث خطأ</h3>
+        <p className="mb-4">{error}</p>
+        <Button className="mt-6 bg-red-600 hover:bg-red-700 w-full" onClick={() => window.location.reload()}>إعادة المحاولة</Button>
       </div>
     </div>
   );
